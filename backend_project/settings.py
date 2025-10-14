@@ -11,9 +11,18 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+os.environ['DJANGO_SERVER_TIMEOUT'] = '60'
+
+
+
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 
 # Quick-start development settings - unsuitable for production
@@ -38,7 +47,8 @@ ALLOWED_HOSTS = [
     '192.168.1.10',
     '10.144.175.151',
     '10.150.76.151',
-    '10.245.228.222'
+    '10.245.228.222',
+    
 ]
 
 
