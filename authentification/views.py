@@ -77,6 +77,8 @@ class OTPVerificationView(APIView):
                     is_active=True,
                     is_verified=True
                 )
+                print("pending_user.password")
+                print(pending_user.password)
                 pending_user.delete()
                 otp.delete()
                 return Response({"message": "Inscription réussie. Vous pouvez maintenant vous connecter."}, status=status.HTTP_201_CREATED)
@@ -115,6 +117,8 @@ class LoginView(APIView):
             return Response({"message": "Aucun utilisateur avec ce numéro de téléphone n'existe."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Authentification
+        print("password")
+        print(password)
         user = authenticate(request=request, phone_number=phone_number, password=password)
         if user is None:
             return Response({"message": "Mot de passe incorrect."}, status=status.HTTP_400_BAD_REQUEST)
@@ -199,6 +203,10 @@ class ChangePasswordView(APIView):
         user.save()
         return Response({"message": "Mot de passe changé avec succès."}, status=status.HTTP_200_OK)
 
+
+
+
+
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -206,3 +214,14 @@ class ProfileView(APIView):
         serializer = CustomUserSerializer(request.user)
         return Response(serializer.data)
 
+
+class UpdateProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        user = request.user
+        serializer = CustomUserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

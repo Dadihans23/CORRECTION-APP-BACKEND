@@ -1,3 +1,5 @@
+
+
 import logging
 import google.generativeai as genai
 from django.conf import settings
@@ -7,14 +9,18 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from rest_framework.response import Response
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from datetime import datetime
+from rest_framework.permissions import IsAuthenticated
+from .models import CorrectionHistory  # Import du modèle
+from .serializers import CorrectionHistorySerializer
 
 logger = logging.getLogger(__name__)
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
 class ProcessImageView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAuthenticated]
 
-    # ✅ LISTES IDENTIQUES AU FRONTEND
     LITERARY_DOMAINS = [
         'Français', 'Histoire-Géographie', 'Philosophie', 
         'Langues étrangères', 'Autre'
@@ -29,7 +35,6 @@ class ProcessImageView(APIView):
         'Informatique', 'Économie / SES'
     ]
 
-    # ✅ NIVEAUX ÉDUCATIFS (Fair Use applicable)
     EDUCATIONAL_LEVELS = [
         'Lycée – Terminale', 'Lycée – Première', 'Lycée – Seconde',
         'Collège (6ᵉ – 3ᵉ)', 'Supérieur – BTS / DUT', 'Supérieur – Licence'
@@ -38,9 +43,9 @@ class ProcessImageView(APIView):
     def post(self, request):
         TEST_MODE = True
         if TEST_MODE:
-            image_path = r'C:\git_project\CORRECTION APP BACKEND\treatment\images\testfr.png'
+            image_path = r'C:\git_project\CORRECTION APP BACKEND\treatment\images\englishtest.png'
             context_str = json.dumps({
-                'domaine': 'Français',
+                'domaine': 'Francais',
                 'niveau': 'Lycée – Terminale',
                 'type_exercice': 'Problème à résoudre',
                 'attente': 'Solution étape par étape',
@@ -53,8 +58,8 @@ class ProcessImageView(APIView):
                 logger.error(f"Image locale non trouvée: {image_path}")
                 return Response(
                     {'success': False, 'message': f'Image locale non trouvée: {image_path}'},
-                    status=status.HTTP_400_BAD_REQUEST  # Mode test inchangé 
-                    )
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         else:
             image = request.FILES.get('image')
             context_str = request.POST.get('context')
@@ -76,35 +81,46 @@ class ProcessImageView(APIView):
             
             logger.info(f"Contexte: Domaine={domaine}, Type={type_exercice}, Niveau={niveau}")
 
-            # ✅ ANALYSE AVEC CONTESTE ÉDUCATIF
+            # ✅ EXTRACTION INITIALE DU TEXTE POUR FALLBACK
+            extracted_text = self._extract_text(image_bytes)
+            
+            # ✅ ANALYSE INITIALE DE LA BRANCHE PAR L'IA
+            branch_analysis = self._detect_branch(image_bytes, extracted_text)
+            
+            # ✅ VÉRIFICATION DE L'INCOHÉRENCE DOMAINE/BRANCHE
+            detected_branch = branch_analysis['branch']
+            detected_domain = branch_analysis['detected_domain']
+            domain_mismatch = None
+            if domaine != detected_domain:
+                domain_mismatch = f"L'utilisateur a indiqué '{domaine}', mais l'exercice est détecté comme '{detected_domain}' ({detected_branch})."
+
+            # ✅ ANALYSE DU TYPE DE CONTENU
             content_analysis = self._analyze_content_type_with_education(
-                domaine, type_exercice, attente, niveau
+                detected_domain, type_exercice, attente, niveau
             )
             
             ia_response = self.call_gemini_api(
-                image_bytes, domaine, niveau, type_exercice, 
+                image_bytes, detected_domain, niveau, type_exercice, 
                 attente, infos, content_analysis
             )
 
-            if not ia_response.get('success', True):
-                # ✅ FALLBACK ÉDUCATIF pour blocages
-                if ia_response.get('error_type') == 'COPYRIGHT_BLOCK':
-                    ia_response = self._educational_fallback(
-                        domaine, type_exercice, niveau, content_analysis
-                    )
-                
-                if not ia_response.get('success', True):
-                    return Response({
-                        'success': False,
-                        'message': ia_response['message'],
-                        'data': {'solution': None},
-                        'content_type': content_analysis['type']
-                    }, status=status.HTTP_400_BAD_REQUEST)
+            # ✅ AJOUT DATE/HEURE BACKEND
+            current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            return Response({
+            # Préparer la réponse JSON
+            response_data = {
                 'success': True,
                 'data': {
-                    'extracted_text': ia_response.get('extracted_text', ''),
+                    'user_domain': domaine,
+                    'user_level': niveau,
+                    'user_exercise_type': type_exercice,
+                    'user_expectation': attente,
+                    'user_info': infos,
+                    'detected_branch': detected_branch,
+                    'detected_branch_explanation': branch_analysis['explanation'],
+                    'domain_mismatch': domain_mismatch,
+                    'response_datetime': current_datetime,
+                    'extracted_text': ia_response.get('extracted_text', extracted_text),
                     'solution': {
                         'result': ia_response.get('result', ''),
                         'steps': ia_response.get('steps', [])
@@ -112,43 +128,202 @@ class ProcessImageView(APIView):
                 },
                 'content_type': content_analysis['type'],
                 'educational_mode': content_analysis.get('educational_mode', False)
-            })
+            }
+
+            if not ia_response.get('success', True):
+                if ia_response.get('error_type') == 'COPYRIGHT_BLOCK':
+                    ia_response = self._educational_fallback(
+                        detected_domain, type_exercice, niveau, content_analysis
+                    )
+                
+                if not ia_response.get('success', True):
+                    response_data = {
+                        'success': False,
+                        'message': ia_response['message'],
+                        'data': {
+                            'user_domain': domaine,
+                            'user_level': niveau,
+                            'user_exercise_type': type_exercice,
+                            'user_expectation': attente,
+                            'user_info': infos,
+                            'solution': None,
+                            'detected_branch': detected_branch,
+                            'detected_branch_explanation': branch_analysis['explanation'],
+                            'domain_mismatch': domain_mismatch
+                        },
+                        'content_type': content_analysis['type'],
+                        'detected_branch': detected_branch,
+                        'detected_branch_explanation': branch_analysis['explanation']
+                    }
+
+            # ✅ SAUVEGARDE DANS L'HISTORIQUE
+            CorrectionHistory.objects.create(
+                user=request.user,
+                user_domain=domaine,
+                user_level=niveau,
+                user_exercise_type=type_exercice,
+                user_expectation=attente,
+                user_info=infos,
+                detected_branch=detected_branch,
+                detected_branch_explanation=branch_analysis['explanation'],
+                domain_mismatch=domain_mismatch,
+                response_datetime=current_datetime,
+                extracted_text=response_data['data']['extracted_text'],
+                solution=response_data['data']['solution'],
+                content_type=content_analysis['type'],
+                educational_mode=content_analysis.get('educational_mode', False),
+                success=response_data['success'],
+                error_message=response_data.get('message', None)
+            )
+
+            return Response(response_data)
 
         except json.JSONDecodeError:
-            return Response({'success': False, 'message': 'Contexte invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+            response_data = {
+                'success': False,
+                'message': 'Contexte invalide.',
+                'data': {
+                    'user_domain': domaine,
+                    'user_level': niveau,
+                    'user_exercise_type': type_exercice,
+                    'user_expectation': attente,
+                    'user_info': infos
+                }
+            }
+            # ✅ SAUVEGARDE DANS L'HISTORIQUE (ERREUR)
+            CorrectionHistory.objects.create(
+                user=request.user,
+                user_domain=domaine,
+                user_level=niveau,
+                user_exercise_type=type_exercice,
+                user_expectation=attente,
+                user_info=infos,
+                success=False,
+                error_message='Contexte invalide.'
+            )
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Erreur: {str(e)}")
-            return Response({'success': False, 'message': f'Erreur serveur: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            response_data = {
+                'success': False,
+                'message': f'Erreur serveur: {str(e)}',
+                'data': {
+                    'user_domain': domaine,
+                    'user_level': niveau,
+                    'user_exercise_type': type_exercice,
+                    'user_expectation': attente,
+                    'user_info': infos
+                }
+            }
+            # ✅ SAUVEGARDE DANS L'HISTORIQUE (ERREUR)
+            CorrectionHistory.objects.create(
+                user=request.user,
+                user_domain=domaine,
+                user_level=niveau,
+                user_exercise_type=type_exercice,
+                user_expectation=attente,
+                user_info=infos,
+                success=False,
+                error_message=f'Erreur serveur: {str(e)}'
+            )
+            return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _extract_text(self, image_bytes):
+        """Extrait le texte de l'image pour fallback"""
+        try:
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            image_part = {'mime_type': 'image/jpeg', 'data': image_bytes}
+            prompt = "Extrayez le texte brut de l'image sans interprétation."
+            response = model.generate_content([prompt, image_part], generation_config={"temperature": 0.1})
+            return response.text.strip()[:500]  # Limite pour éviter surcharge
+        except Exception as e:
+            logger.error(f"Erreur extraction texte: {str(e)}")
+            return ""
+
+    def _detect_branch(self, image_bytes, extracted_text):
+        """Analyse l'image et le texte extrait pour détecter la branche"""
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        try:
+            image_part = {'mime_type': 'image/jpeg', 'data': image_bytes}
+            prompt = f"""
+Analyse l'image et le texte suivant pour déterminer si l'exercice est SCIENTIFIQUE (Mathématiques, Physique-Chimie, SVT, Informatique, Économie/SES) ou LITTÉRAIRE (Français, Histoire-Géographie, Philosophie, Langues étrangères, Autre).
+Texte extrait : {extracted_text[:500]}
+Retourne un JSON avec :
+- "branch": "Scientifique" ou "Littéraire"
+- "detected_domain": Le domaine spécifique (ex. "Anglais", "Mathématiques")
+- "explanation": Une courte explication de la détection
+
+JSON :
+{{
+  "branch": "Scientifique ou Littéraire",
+  "detected_domain": "Domaine détecté",
+  "explanation": "Explication de la détection"
+}}
+"""
+            response = model.generate_content([prompt, image_part], generation_config={"temperature": 0.2})
+            content = response.text.strip()
+            try:
+                result = json.loads(content)
+                return {
+                    'branch': result.get('branch', 'Général'),
+                    'detected_domain': result.get('detected_domain', 'Général'),
+                    'explanation': result.get('explanation', 'Analyse non concluante.')
+                }
+            except json.JSONDecodeError:
+                # Fallback : Analyse du texte extrait
+                return self._fallback_branch_detection(extracted_text)
+        except Exception as e:
+            logger.error(f"Erreur détection branche: {str(e)}")
+            return self._fallback_branch_detection(extracted_text)
+
+    def _fallback_branch_detection(self, extracted_text):
+        """Fallback basé sur le texte extrait"""
+        text = extracted_text.lower()
+        literary_keywords = ['english', 'français', 'histoire', 'philosophie', 'langues', 'rédaction', 'texte']
+        scientific_keywords = ['math', 'physique', 'chimie', 'svt', 'informatique', 'économie', 'equation', 'calcul']
+        
+        if any(keyword in text for keyword in literary_keywords):
+            return {
+                'branch': 'Littéraire',
+                'detected_domain': 'Langues étrangères' if 'english' in text else 'Français',
+                'explanation': f"Détection basée sur le texte extrait : mots-clés littéraires détectés ({'english' if 'english' in text else 'français'})."
+            }
+        elif any(keyword in text for keyword in scientific_keywords):
+            return {
+                'branch': 'Scientifique',
+                'detected_domain': 'Mathématiques' if 'math' in text else 'Physique-Chimie',
+                'explanation': f"Détection basée sur le texte extrait : mots-clés scientifiques détectés ({'math' if 'math' in text else 'physique'})."
+            }
+        return {
+            'branch': 'Général',
+            'detected_domain': 'Général',
+            'explanation': 'Aucun mot-clé spécifique détecté dans le texte extrait.'
+        }
 
     def _analyze_content_type_with_education(self, domaine, type_exercice, attente, niveau):
         """Analyse avec détection Fair Use éducatif"""
+        is_educational = niveau in self.EDUCATIONAL_LEVELS
+        is_literary_sensitive = (domaine in self.LITERARY_DOMAINS and type_exercice in self.SENSITIVE_TYPES)
         
-        # ✅ SCIENTIFIQUE (toujours OK)
         if domaine in self.SCIENTIFIC_DOMAINS or type_exercice in ['QCM', 'Problème à résoudre', 'Démonstration / raisonnement']:
             return {
                 'type': 'SCIENTIFIC',
                 'needs_latex': True,
                 'safety_level': 'LOW',
                 'temperature': 0.2,
-                'educational_mode': False
+                'educational_mode': is_educational
             }
-        
-        # ✅ LITTÉRAIRE AVEC FAIR USE ÉDUCATIF
-        is_educational = niveau in self.EDUCATIONAL_LEVELS
-        is_literary_sensitive = (domaine in self.LITERARY_DOMAINS and 
-                               type_exercice in self.SENSITIVE_TYPES)
         
         if is_literary_sensitive and is_educational:
             return {
                 'type': 'LITERARY_EDUCATIONAL',
                 'needs_latex': False,
-                'safety_level': 'EDUCATIONAL',  # Mode professeur
-                'temperature': 0.7,            # Équilibre précision/créativité
+                'safety_level': 'EDUCATIONAL',
+                'temperature': 0.7,
                 'educational_mode': True,
                 'fair_use': True
             }
         
-        # ✅ LITTÉRAIRE SENSIBLE (risque copyright)
         if is_literary_sensitive:
             return {
                 'type': 'LITERARY_SENSITIVE',
@@ -158,7 +333,6 @@ class ProcessImageView(APIView):
                 'educational_mode': False
             }
         
-        # ✅ LITTÉRAIRE MODÉRÉ
         if domaine in self.LITERARY_DOMAINS:
             return {
                 'type': 'LITERARY_MODERATE',
@@ -173,7 +347,7 @@ class ProcessImageView(APIView):
             'needs_latex': False,
             'safety_level': 'MEDIUM',
             'temperature': 0.5,
-            'educational_mode': False
+            'educational_mode': is_educational
         }
 
     def _educational_fallback(self, domaine, type_exercice, niveau, analysis):
@@ -194,8 +368,7 @@ class ProcessImageView(APIView):
             ]
         }
 
-    def call_gemini_api(self, image_bytes, domaine, niveau, type_exercice, 
-                       attente, infos, content_analysis):
+    def call_gemini_api(self, image_bytes, domaine, niveau, type_exercice, attente, infos, content_analysis):
         model = genai.GenerativeModel('gemini-2.5-flash')
         
         safety_settings = self._get_educational_safety_settings(content_analysis)
@@ -210,7 +383,7 @@ class ProcessImageView(APIView):
                 generation_config={
                     "temperature": content_analysis['temperature'],
                     "top_p": 0.9,
-                    "max_output_tokens": 5000  # Plus pour contenu éducatif
+                    "max_output_tokens": 5000
                 }
             )
 
@@ -249,8 +422,7 @@ class ProcessImageView(APIView):
         
         safety_level = analysis['safety_level']
         
-        if safety_level == 'EDUCATIONAL':  # ✅ MODE PROFESSEUR
-            # Plus permissif pour fair use éducatif
+        if safety_level == 'EDUCATIONAL':
             base_settings.extend([
                 {"category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE},
                 {"category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, "threshold": HarmBlockThreshold.BLOCK_LOW_AND_ABOVE}
@@ -285,55 +457,38 @@ class ProcessImageView(APIView):
             return self._build_general_prompt(niveau, type_exercice, attente)
 
     def _build_educational_literary_prompt(self, niveau, type_exercice, attente, domaine):
-        """Prompt PROFESSEUR pour contenu littéraire éducatif"""
+        """Prompt PROFESSEUR pour contenu littéraire éducatif — même structure JSON que scientifique"""
         return f"""
-🆕 MODE PROFESSEUR CERTIFIÉ - EXERCICE SCOLAIRE {niveau} 🆕
+Assistant professeur certifié en {domaine} — niveau {niveau}
+Type d'exercice : {type_exercice} | Attente : {attente}
 
-📚 CONTEXTE LÉGAL - FAIR USE ÉDUCATIF :
-- Usage PÉDAGOGIQUE dans classe {niveau}
-- Objectif : CORRECTION et ENSEIGNEMENT
-- Citations COURTES pour analyse critique uniquement
-- Transformateur : analyse méthodologique, pas reproduction
+🎓 Objectif :
+Corriger l'exercice de façon pédagogique et méthodique, en respectant le cadre du fair use éducatif :
+- Citations courtes (max 150 mots)
+- Pas de reproduction intégrale d'œuvres
+- Explication méthodologique et critique
+- Correction structurée et compréhensible pour l'élève
 
-🎓 VOUS ÊTES PROFESSEUR DE {domaine} :
-Type: {type_exercice} | Attente: {attente}
+📋 Instructions :
+1. Extraire le texte de l'image (reformulé si nécessaire)
+2. Fournir une correction complète et pédagogique
+3. Structurer la réponse sous forme de JSON au format suivant :
 
-✅ AUTORISÉ (Fair Use Éducatif):
-- Citations < 100 mots pour ILLUSTRER l'analyse
-- Méthodes d'analyse littéraire/scolaire
-- Explication pédagogique des techniques
-- Correction structurée élève/professeur
-
-🚫 INTERDIT:
-- Récitation complète d'œuvres
-- Copie verbatim passages longs
-- Contenu non-transformé
-
-📋 MISSION CORRECTION:
-1. Analysez l'exercice comme un PROFESSEUR corrigerait
-2. Fournissez méthode pédagogique + application
-3. Structure : Résultat + étapes détaillées
-4. Conseils personnalisés pour l'élève
-
-JSON RÉPONSE PROFESSEUR :
+JSON :
 {{
-  "extracted_text": "Reformulation pédagogique de l'exercice",
-  "result": "Résultat Final : Correction + méthode appliquée",
-  "steps": [
-    "CONTEXTE PÉDAGOGIQUE {niveau}: ",
-    "1. Analyse méthodologique (citation courte si nécessaire)",
-    "2. Correction structurée par compétences",
-    "3. Points forts/faibles de la réponse élève",
-    "4. Conseils d'amélioration professorale",
-    "5. Exemple corrigé (fair use)"
-  ]
+  "extracted_text": "Texte avec LaTeX si équations",
+  "result": "Résultat Final : réponse concise",
+  "steps": ["Correction Détaillées : ", "1. Analyse", "$$calculs$$", "2. Résolution"]
 }}
 
-⚖️ SAFETY OVERRIDE : Usage éducatif légitime - fair use exception.
-Ceci est une correction scolaire transformative.
-        """
+⚠️ IMPORTANT :
+- Réponds uniquement avec le JSON valide ci-dessus.
+- N’ajoute aucun texte hors du JSON.
+"""
 
-    # ✅ Les autres méthodes restent identiques
+
+
+
     def _build_scientific_prompt(self, niveau, type_exercice, attente, needs_latex):
         latex_instruction = "Utilisez LaTeX $$pour équations$$ et $inline$." if needs_latex else ""
         return f"""
@@ -346,9 +501,9 @@ Type: {type_exercice} | Attente: {attente}
 
 JSON :
 {{
-  "extracted_text": "Texte avec LaTeX",
+  "extracted_text": "Texte avec LaTeX si équations",
   "result": "Résultat Final : réponse concise",
-  "steps": ["Correction Détaillées : ", "1. Analyse", "$$calculs$$"]
+  "steps": ["Correction Détaillées : ", "1. Analyse", "$$calculs$$", "2. Résolution"]
 }}
         """
 
@@ -399,9 +554,13 @@ JSON :
         """
 
     def _parse_gemini_response(self, content, needs_latex):
-        """Parse robuste (inchangé)"""
+        """Parse robuste"""
         try:
             result = json.loads(content.strip())
+            # Supprimer LaTeX pour les exercices littéraires
+            if not needs_latex:
+                result['result'] = result.get('result', '').replace('$\\text{', '').replace('}$', '')
+                result['steps'] = [step.replace('$\\text{', '').replace('}$', '') for step in result.get('steps', [])]
             return {
                 'success': True,
                 'extracted_text': result.get('extracted_text', ''),
@@ -413,6 +572,9 @@ JSON :
             if start != -1 and end > start:
                 try:
                     result = json.loads(content[start:end])
+                    if not needs_latex:
+                        result['result'] = result.get('result', '').replace('$\\text{', '').replace('}$', '')
+                        result['steps'] = [step.replace('$\\text{', '').replace('}$', '') for step in result.get('steps', [])]
                     return {
                         'success': True,
                         'extracted_text': result.get('extracted_text', content[:200]),
@@ -429,43 +591,70 @@ JSON :
             'steps': [content[:800]]
         }
 
-# from rest_framework.views import APIView
-# from rest_framework.parsers import MultiPartParser, FormParser
-# from rest_framework.response import Response
-# from rest_framework import status
-# from rest_framework.permissions import IsAuthenticated
-# import json
+
+class HistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        corrections = CorrectionHistory.objects.filter(user=request.user).order_by('-created_at')
+        serializer = CorrectionHistorySerializer(corrections, many=True)
+        return Response(serializer.data)
+
+
+
+
+
+
 # import logging
 # import google.generativeai as genai
 # from django.conf import settings
-# import os
+# import json
+# from rest_framework.views import APIView
+# from rest_framework.parsers import MultiPartParser, FormParser
+# from rest_framework import status
+# from rest_framework.response import Response
+# from google.generativeai.types import HarmCategory, HarmBlockThreshold
+# from datetime import datetime
+# from rest_framework.permissions import IsAuthenticated
+# from .models import CorrectionHistory  # Import du modèle
+# from .serializers import CorrectionHistorySerializer
 
-# from io import BytesIO  # Ajouté pour corriger l'erreur
-
-# from PIL import Image as PILImage
-# import io
-# from google.generativeai.types import BlobType  # Pour les bytes
-
-# # Configurer le logging
 # logger = logging.getLogger(__name__)
-
-# # Configurer Gemini
 # genai.configure(api_key=settings.GEMINI_API_KEY)
 
 # class ProcessImageView(APIView):
 #     parser_classes = [MultiPartParser, FormParser]
+#     permission_classes = [IsAuthenticated]
+
+#     LITERARY_DOMAINS = [
+#         'Français', 'Histoire-Géographie', 'Philosophie', 
+#         'Langues étrangères', 'Autre'
+#     ]
+    
+#     SENSITIVE_TYPES = [
+#         'Exercice de rédaction', 'Analyse de texte'
+#     ]
+    
+#     SCIENTIFIC_DOMAINS = [
+#         'Mathématiques', 'Physique-Chimie', 'SVT', 
+#         'Informatique', 'Économie / SES'
+#     ]
+
+#     EDUCATIONAL_LEVELS = [
+#         'Lycée – Terminale', 'Lycée – Première', 'Lycée – Seconde',
+#         'Collège (6ᵉ – 3ᵉ)', 'Supérieur – BTS / DUT', 'Supérieur – Licence'
+#     ]
 
 #     def post(self, request):
-#         # Mode test avec image locale
-#         TEST_MODE = False  # Change à False pour Flutter
+#         TEST_MODE = False
 #         if TEST_MODE:
-#             image_path = r'C:\git_project\CORRECTION APP BACKEND\treatment\images\test_image.jpg'
+#             image_path = r'C:\git_project\CORRECTION APP BACKEND\treatment\images\testfr.png'
 #             context_str = json.dumps({
-#                 'domaine': 'Mathématiques',
+#                 'domaine': 'Francais',
 #                 'niveau': 'Lycée – Terminale',
 #                 'type_exercice': 'Problème à résoudre',
 #                 'attente': 'Solution étape par étape',
-#                 'infos': 'Exercice sur les équations'
+#                 'infos': ''
 #             })
 #             try:
 #                 with open(image_path, 'rb') as f:
@@ -477,12 +666,10 @@ JSON :
 #                     status=status.HTTP_400_BAD_REQUEST
 #                 )
 #         else:
-#             # Mode normal (Flutter)
 #             image = request.FILES.get('image')
 #             context_str = request.POST.get('context')
 
 #             if not image:
-#                 logger.error("Aucune image fournie dans la requête")
 #                 return Response(
 #                     {'success': False, 'message': 'Aucune image fournie.'},
 #                     status=status.HTTP_400_BAD_REQUEST
@@ -490,105 +677,532 @@ JSON :
 #             image_bytes = image.read()
 
 #         try:
-#             # Parser le contexte
 #             context = json.loads(context_str) if context_str else {}
 #             domaine = context.get('domaine', 'Mathématiques')
-#             niveau = context.get('niveau', 'Collège')
+#             niveau = context.get('niveau', 'Collège (6ᵉ – 3ᵉ)')
 #             type_exercice = context.get('type_exercice', 'Problème à résoudre')
 #             attente = context.get('attente', 'Solution étape par étape')
 #             infos = context.get('infos', '')
-#             logger.info(f"Contexte: {context}")
+            
+#             logger.info(f"Contexte: Domaine={domaine}, Type={type_exercice}, Niveau={niveau}")
 
-#             # Appel à Gemini
-#             ia_response = self.call_gemini_api(image_bytes, domaine, niveau, type_exercice, attente, infos)
+#             # ✅ EXTRACTION INITIALE DU TEXTE POUR FALLBACK
+#             extracted_text = self._extract_text(image_bytes)
+            
+#             # ✅ ANALYSE INITIALE DE LA BRANCHE PAR L'IA
+#             branch_analysis = self._detect_branch(image_bytes, extracted_text)
+            
+#             # ✅ VÉRIFICATION DE L'INCOHÉRENCE DOMAINE/BRANCHE
+#             detected_branch = branch_analysis['branch']
+#             detected_domain = branch_analysis['detected_domain']
+#             domain_mismatch = None
+#             if domaine != detected_domain:
+#                 domain_mismatch = f"L'utilisateur a indiqué '{domaine}', mais l'exercice est détecté comme '{detected_domain}' ({detected_branch})."
 
-#             return Response({
+#             # ✅ ANALYSE DU TYPE DE CONTENU
+#             content_analysis = self._analyze_content_type_with_education(
+#                 detected_domain, type_exercice, attente, niveau
+#             )
+            
+#             ia_response = self.call_gemini_api(
+#                 image_bytes, detected_domain, niveau, type_exercice, 
+#                 attente, infos, content_analysis
+#             )
+
+#             # ✅ AJOUT DATE/HEURE BACKEND
+#             current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+#             # Préparer la réponse JSON
+#             response_data = {
 #                 'success': True,
 #                 'data': {
-#                     'extracted_text': ia_response.get('extracted_text', 'Extrait par Gemini'),
-#                     'solution': ia_response
+#                     'user_domain': domaine,
+#                     'user_level': niveau,
+#                     'user_exercise_type': type_exercice,
+#                     'user_expectation': attente,
+#                     'user_info': infos,
+#                     'detected_branch': detected_branch,
+#                     'detected_branch_explanation': branch_analysis['explanation'],
+#                     'domain_mismatch': domain_mismatch,
+#                     'response_datetime': current_datetime,
+#                     'extracted_text': ia_response.get('extracted_text', extracted_text),
+#                     'solution': {
+#                         'result': ia_response.get('result', ''),
+#                         'steps': ia_response.get('steps', [])
+#                     }
 #                 },
-#                 'statusCode': status.HTTP_200_OK
-#             })
-#             # Supprimé le print invalide
-#         except json.JSONDecodeError:
-#             logger.error("Erreur JSON contexte")
-#             return Response(
-#                 {'success': False, 'message': 'Contexte invalide (format JSON incorrect).'},
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-#         except Exception as e:
-#             logger.error(f"Erreur générale: {str(e)}")
-#             return Response(
-#                 {'success': False, 'message': f'Erreur lors du traitement: {str(e)}'},
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-#             )
-
-#     def call_gemini_api(self, image_bytes, domaine, niveau, type_exercice, attente, infos):
-#         model = genai.GenerativeModel('gemini-2.5-flash')        
-#         # Prompt mis à jour pour imiter PhotoSolve
-#         prompt = (
-#             f"Tu es un assistant pédagogique expert, comme dans PhotoSolve. Analyse cette image d'un exercice de {domaine} pour un niveau {niveau}. "
-#             f"Type d'exercice: {type_exercice}. Attente: {attente}. Infos: {infos}. "
-#             f"1. Extrais le texte de l'image (LaTeX $$ pour équations si présentes, sinon texte brut). "
-#             f"2. Fournis une solution claire et adaptée au niveau, avec un style comme PhotoSolve. "
-#             f"3. Pour les exercices scientifiques, utilise des étapes détaillées avec LaTeX pour les équations. Pour les exercices littéraires, fournis une réponse fluide et concise. "
-#             f"Retourne la réponse **UNIQUEMENT** sous forme JSON avec : "
-#             f"'extracted_text' (texte brut ou avec LaTeX), "
-#             f"'result' (Résultat Final : résumé ou réponse finale en texte clair, avec LaTeX si besoin), "
-#             f"'steps' (Resultat Détaillées : resultat detaillées pour chaque question , avec LaTeX pour les calculs si il y en a). "
-#             f"Exemple : "
-#             f"```json\n"
-#             f"{{\n  \"extracted_text\": \"x^2 + 2x + 1 = 0\",\n  \"result\": \"Résultat Final : x = -1 (double racine)\",\n  \"steps\": [\"correction Détaillées : \", }}\n```"
-#             f"Pour un exercice littéraire : "
-#             f"```json\n"
-#             f"{{\n  \"extracted_text\": \"Résumez ce poème...\",\n  \"result\": \"Résultat Final : Résumé en 100 mots : Le poème décrit...\",\n  \"steps\": [\"Étapes Détaillées : \", \"1. Analyse du thème principal : La solitude.\", \"2. Identification des images poétiques : étoiles, nuit.\"]\n}}\n```"
-#             f"Ne retourne rien d'autre que ce JSON."
-#         )
-
-#         try:
-#             # Créer le contenu multimodal
-#             image_part = {
-#                 'mime_type': 'image/jpeg',
-#                 'data': image_bytes
+#                 'content_type': content_analysis['type'],
+#                 'educational_mode': content_analysis.get('educational_mode', False)
 #             }
-#             response = model.generate_content([prompt, image_part])
 
-#             # Récupérer la réponse
-#             content = response.text
-#             logger.info(f"Réponse Gemini: {content[:200]}...")
+#             if not ia_response.get('success', True):
+#                 if ia_response.get('error_type') == 'COPYRIGHT_BLOCK':
+#                     ia_response = self._educational_fallback(
+#                         detected_domain, type_exercice, niveau, content_analysis
+#                     )
+                
+#                 if not ia_response.get('success', True):
+#                     response_data = {
+#                         'success': False,
+#                         'message': ia_response['message'],
+#                         'data': {
+#                             'user_domain': domaine,
+#                             'user_level': niveau,
+#                             'user_exercise_type': type_exercice,
+#                             'user_expectation': attente,
+#                             'user_info': infos,
+#                             'solution': None,
+#                             'detected_branch': detected_branch,
+#                             'detected_branch_explanation': branch_analysis['explanation'],
+#                             'domain_mismatch': domain_mismatch
+#                         },
+#                         'content_type': content_analysis['type'],
+#                         'detected_branch': detected_branch,
+#                         'detected_branch_explanation': branch_analysis['explanation']
+#                     }
 
-#             # Parser la réponse JSON
+#             # ✅ SAUVEGARDE DANS L'HISTORIQUE
+#             CorrectionHistory.objects.create(
+#                 user=request.user,
+#                 user_domain=domaine,
+#                 user_level=niveau,
+#                 user_exercise_type=type_exercice,
+#                 user_expectation=attente,
+#                 user_info=infos,
+#                 detected_branch=detected_branch,
+#                 detected_branch_explanation=branch_analysis['explanation'],
+#                 domain_mismatch=domain_mismatch,
+#                 response_datetime=current_datetime,
+#                 extracted_text=response_data['data']['extracted_text'],
+#                 solution=response_data['data']['solution'],
+#                 content_type=content_analysis['type'],
+#                 educational_mode=content_analysis.get('educational_mode', False),
+#                 success=response_data['success'],
+#                 error_message=response_data.get('message', None)
+#             )
+
+#             return Response(response_data)
+
+#         except json.JSONDecodeError:
+#             response_data = {
+#                 'success': False,
+#                 'message': 'Contexte invalide.',
+#                 'data': {
+#                     'user_domain': domaine,
+#                     'user_level': niveau,
+#                     'user_exercise_type': type_exercice,
+#                     'user_expectation': attente,
+#                     'user_info': infos
+#                 }
+#             }
+#             # ✅ SAUVEGARDE DANS L'HISTORIQUE (ERREUR)
+#             CorrectionHistory.objects.create(
+#                 user=request.user,
+#                 user_domain=domaine,
+#                 user_level=niveau,
+#                 user_exercise_type=type_exercice,
+#                 user_expectation=attente,
+#                 user_info=infos,
+#                 success=False,
+#                 error_message='Contexte invalide.'
+#             )
+#             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+#         except Exception as e:
+#             logger.error(f"Erreur: {str(e)}")
+#             response_data = {
+#                 'success': False,
+#                 'message': f'Erreur serveur: {str(e)}',
+#                 'data': {
+#                     'user_domain': domaine,
+#                     'user_level': niveau,
+#                     'user_exercise_type': type_exercice,
+#                     'user_expectation': attente,
+#                     'user_info': infos
+#                 }
+#             }
+#             # ✅ SAUVEGARDE DANS L'HISTORIQUE (ERREUR)
+#             CorrectionHistory.objects.create(
+#                 user=request.user,
+#                 user_domain=domaine,
+#                 user_level=niveau,
+#                 user_exercise_type=type_exercice,
+#                 user_expectation=attente,
+#                 user_info=infos,
+#                 success=False,
+#                 error_message=f'Erreur serveur: {str(e)}'
+#             )
+#             return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#     def _extract_text(self, image_bytes):
+#         """Extrait le texte de l'image pour fallback"""
+#         try:
+#             model = genai.GenerativeModel('gemini-2.5-flash')
+#             image_part = {'mime_type': 'image/jpeg', 'data': image_bytes}
+#             prompt = "Extrayez le texte brut de l'image sans interprétation."
+#             response = model.generate_content([prompt, image_part], generation_config={"temperature": 0.1})
+#             return response.text.strip()[:500]  # Limite pour éviter surcharge
+#         except Exception as e:
+#             logger.error(f"Erreur extraction texte: {str(e)}")
+#             return ""
+
+#     def _detect_branch(self, image_bytes, extracted_text):
+#         """Analyse l'image et le texte extrait pour détecter la branche"""
+#         model = genai.GenerativeModel('gemini-2.5-flash')
+#         try:
+#             image_part = {'mime_type': 'image/jpeg', 'data': image_bytes}
+#             prompt = f"""
+# Analyse l'image et le texte suivant pour déterminer si l'exercice est SCIENTIFIQUE (Mathématiques, Physique-Chimie, SVT, Informatique, Économie/SES) ou LITTÉRAIRE (Français, Histoire-Géographie, Philosophie, Langues étrangères, Autre).
+# Texte extrait : {extracted_text[:500]}
+# Retourne un JSON avec :
+# - "branch": "Scientifique" ou "Littéraire"
+# - "detected_domain": Le domaine spécifique (ex. "Anglais", "Mathématiques")
+# - "explanation": Une courte explication de la détection
+
+# JSON :
+# {{
+#   "branch": "Scientifique ou Littéraire",
+#   "detected_domain": "Domaine détecté",
+#   "explanation": "Explication de la détection"
+# }}
+# """
+#             response = model.generate_content([prompt, image_part], generation_config={"temperature": 0.2})
+#             content = response.text.strip()
 #             try:
 #                 result = json.loads(content)
 #                 return {
-#                     'extracted_text': result.get('extracted_text', 'Extrait par Gemini'),
-#                     'result': result.get('result', 'Solution calculée'),
-#                     'steps': result.get('steps', ['Pas d\'étapes disponibles'])
+#                     'branch': result.get('branch', 'Général'),
+#                     'detected_domain': result.get('detected_domain', 'Général'),
+#                     'explanation': result.get('explanation', 'Analyse non concluante.')
 #                 }
 #             except json.JSONDecodeError:
-#                 # Fallback extraction JSON
-#                 start = content.find('{')
-#                 end = content.rfind('}') + 1
-#                 if start != -1 and end > start:
-#                     try:
-#                         json_str = content[start:end]
-#                         result = json.loads(json_str)
-#                         return {
-#                             'extracted_text': result.get('extracted_text', content[:200]),
-#                             'result': result.get('result', 'Réponse Gemini'),
-#                             'steps': result.get('steps', [])
-#                         }
-#                     except:
-#                         pass
-#                 return {
-#                     'extracted_text': content[:500],
-#                     'result': 'Réponse non structurée',
-#                     'steps': []
+#                 # Fallback : Analyse du texte extrait
+#                 return self._fallback_branch_detection(extracted_text)
+#         except Exception as e:
+#             logger.error(f"Erreur détection branche: {str(e)}")
+#             return self._fallback_branch_detection(extracted_text)
+
+#     def _fallback_branch_detection(self, extracted_text):
+#         """Fallback basé sur le texte extrait"""
+#         text = extracted_text.lower()
+#         literary_keywords = ['english', 'français', 'histoire', 'philosophie', 'langues', 'rédaction', 'texte']
+#         scientific_keywords = ['math', 'physique', 'chimie', 'svt', 'informatique', 'économie', 'equation', 'calcul']
+        
+#         if any(keyword in text for keyword in literary_keywords):
+#             return {
+#                 'branch': 'Littéraire',
+#                 'detected_domain': 'Langues étrangères' if 'english' in text else 'Français',
+#                 'explanation': f"Détection basée sur le texte extrait : mots-clés littéraires détectés ({'english' if 'english' in text else 'français'})."
+#             }
+#         elif any(keyword in text for keyword in scientific_keywords):
+#             return {
+#                 'branch': 'Scientifique',
+#                 'detected_domain': 'Mathématiques' if 'math' in text else 'Physique-Chimie',
+#                 'explanation': f"Détection basée sur le texte extrait : mots-clés scientifiques détectés ({'math' if 'math' in text else 'physique'})."
+#             }
+#         return {
+#             'branch': 'Général',
+#             'detected_domain': 'Général',
+#             'explanation': 'Aucun mot-clé spécifique détecté dans le texte extrait.'
+#         }
+
+#     def _analyze_content_type_with_education(self, domaine, type_exercice, attente, niveau):
+#         """Analyse avec détection Fair Use éducatif"""
+#         is_educational = niveau in self.EDUCATIONAL_LEVELS
+#         is_literary_sensitive = (domaine in self.LITERARY_DOMAINS and type_exercice in self.SENSITIVE_TYPES)
+        
+#         if domaine in self.SCIENTIFIC_DOMAINS or type_exercice in ['QCM', 'Problème à résoudre', 'Démonstration / raisonnement']:
+#             return {
+#                 'type': 'SCIENTIFIC',
+#                 'needs_latex': True,
+#                 'safety_level': 'LOW',
+#                 'temperature': 0.2,
+#                 'educational_mode': is_educational
+#             }
+        
+#         if is_literary_sensitive and is_educational:
+#             return {
+#                 'type': 'LITERARY_EDUCATIONAL',
+#                 'needs_latex': False,
+#                 'safety_level': 'EDUCATIONAL',
+#                 'temperature': 0.7,
+#                 'educational_mode': True,
+#                 'fair_use': True
+#             }
+        
+#         if is_literary_sensitive:
+#             return {
+#                 'type': 'LITERARY_SENSITIVE',
+#                 'needs_latex': False,
+#                 'safety_level': 'HIGH',
+#                 'temperature': 0.8,
+#                 'educational_mode': False
+#             }
+        
+#         if domaine in self.LITERARY_DOMAINS:
+#             return {
+#                 'type': 'LITERARY_MODERATE',
+#                 'needs_latex': False,
+#                 'safety_level': 'MEDIUM',
+#                 'temperature': 0.6,
+#                 'educational_mode': is_educational
+#             }
+        
+#         return {
+#             'type': 'GENERAL',
+#             'needs_latex': False,
+#             'safety_level': 'MEDIUM',
+#             'temperature': 0.5,
+#             'educational_mode': is_educational
+#         }
+
+#     def _educational_fallback(self, domaine, type_exercice, niveau, analysis):
+#         """Fallback pédagogique si copyright bloqué"""
+#         logger.info("Mode fallback éducatif activé")
+#         return {
+#             'success': True,
+#             'educational_mode': True,
+#             'extracted_text': f"Méthode pédagogique générale - {domaine} {niveau}",
+#             'result': f"Résultat Final: Méthode d'analyse structurée pour {type_exercice}",
+#             'steps': [
+#                 f"CONTEXTE PÉDAGOGIQUE {niveau}: ",
+#                 "1. Méthode générale d'analyse adaptée au niveau",
+#                 "2. Structure recommandée pour ce type d'exercice",
+#                 "3. Conseils méthodologiques pour réussir",
+#                 "4. Exemple générique d'application",
+#                 "5. Points d'amélioration pour l'élève"
+#             ]
+#         }
+
+#     def call_gemini_api(self, image_bytes, domaine, niveau, type_exercice, attente, infos, content_analysis):
+#         model = genai.GenerativeModel('gemini-2.5-flash')
+        
+#         safety_settings = self._get_educational_safety_settings(content_analysis)
+#         prompt = self._build_educational_prompt(content_analysis, domaine, niveau, type_exercice, attente, infos)
+
+#         try:
+#             image_part = {'mime_type': 'image/jpeg', 'data': image_bytes}
+            
+#             response = model.generate_content(
+#                 [prompt, image_part],
+#                 safety_settings=safety_settings,
+#                 generation_config={
+#                     "temperature": content_analysis['temperature'],
+#                     "top_p": 0.9,
+#                     "max_output_tokens": 5000
 #                 }
-                
+#             )
+
+#             candidate = response.candidates[0]
+            
+#             if candidate.finish_reason == 4:  # COPYRIGHT_BLOCK
+#                 logger.warning(f"Copyright éducatif bloqué: {content_analysis['type']}")
+#                 return {
+#                     'success': False,
+#                     'message': 'Contenu sensible détecté. Mode pédagogique activé.',
+#                     'error_type': 'COPYRIGHT_BLOCK'
+#                 }
+
+#             if candidate.finish_reason != 1 or not candidate.content.parts:
+#                 return {
+#                     'success': False,
+#                     'message': 'Réponse invalide.',
+#                     'error_type': 'INVALID_RESPONSE'
+#                 }
+
+#             content = response.text
+#             logger.info(f"Mode: {content_analysis.get('educational_mode', False)} | Réponse: {content[:150]}...")
+
+#             return self._parse_gemini_response(content, content_analysis['needs_latex'])
+
 #         except Exception as e:
 #             logger.error(f"Erreur Gemini: {str(e)}")
-#             raise Exception(f'Erreur API Gemini: {str(e)}')
+#             return {'success': False, 'message': f'Erreur API: {str(e)}', 'error_type': 'API_ERROR'}
 
+#     def _get_educational_safety_settings(self, analysis):
+#         """Safety settings avec exception éducative"""
+#         base_settings = [
+#             {"category": HarmCategory.HARM_CATEGORY_HARASSMENT, "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE},
+#             {"category": HarmCategory.HARM_CATEGORY_HATE_SPEECH, "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE}
+#         ]
+        
+#         safety_level = analysis['safety_level']
+        
+#         if safety_level == 'EDUCATIONAL':
+#             base_settings.extend([
+#                 {"category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE},
+#                 {"category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, "threshold": HarmBlockThreshold.BLOCK_LOW_AND_ABOVE}
+#             ])
+#         elif safety_level == 'HIGH':
+#             base_settings.append({"category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE})
+#         else:
+#             base_settings.append({"category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, "threshold": HarmBlockThreshold.BLOCK_ONLY_HIGH})
+        
+#         return base_settings
+
+#     def _build_educational_prompt(self, analysis, domaine, niveau, type_exercice, attente, infos):
+#         """Prompt avec contexte éducatif Fair Use"""
+#         educational_mode = analysis.get('educational_mode', False)
+#         type_content = analysis['type']
+        
+#         if type_content == 'SCIENTIFIC':
+#             return self._build_scientific_prompt(niveau, type_exercice, attente, analysis['needs_latex'])
+        
+#         elif type_content == 'LITERARY_EDUCATIONAL':
+#             return self._build_educational_literary_prompt(niveau, type_exercice, attente, domaine)
+        
+#         elif type_content == 'LITERARY_SENSITIVE':
+#             return self._build_literary_sensitive_prompt(niveau, type_exercice, attente)
+        
+#         elif type_content == 'LITERARY_MODERATE':
+#             if educational_mode:
+#                 return self._build_educational_literary_prompt(niveau, type_exercice, attente, domaine)
+#             return self._build_literary_moderate_prompt(niveau, type_exercice, attente)
+        
+#         else:
+#             return self._build_general_prompt(niveau, type_exercice, attente)
+
+#     def _build_educational_literary_prompt(self, niveau, type_exercice, attente, domaine):
+#         """Prompt PROFESSEUR pour contenu littéraire éducatif — même structure JSON que scientifique"""
+#         return f"""
+# Assistant professeur certifié en {domaine} — niveau {niveau}
+# Type d'exercice : {type_exercice} | Attente : {attente}
+
+# 🎓 Objectif :
+# Corriger l'exercice de façon pédagogique et méthodique, en respectant le cadre du fair use éducatif :
+# - Citations courtes (max 150 mots)
+# - Pas de reproduction intégrale d'œuvres
+# - Explication méthodologique et critique
+# - Correction structurée et compréhensible pour l'élève
+
+# 📋 Instructions :
+# 1. Extraire le texte de l'image (reformulé si nécessaire)
+# 2. Fournir une correction complète et pédagogique
+# 3. Structurer la réponse sous forme de JSON au format suivant :
+
+# JSON :
+# {{
+#   "extracted_text": "Texte avec LaTeX si équations",
+#   "result": "Résultat Final : réponse concise",
+#   "steps": ["Correction Détaillées : ", "1. Analyse", "$$calculs$$", "2. Résolution"]
+# }}
+
+# ⚠️ IMPORTANT :
+# - Réponds uniquement avec le JSON valide ci-dessus.
+# - N’ajoute aucun texte hors du JSON.
+# """
+
+
+
+
+#     def _build_scientific_prompt(self, niveau, type_exercice, attente, needs_latex):
+#         latex_instruction = "Utilisez LaTeX $$pour équations$$ et $inline$." if needs_latex else ""
+#         return f"""
+# Assistant scientifique expert niveau {niveau}
+# Type: {type_exercice} | Attente: {attente}
+
+# 1. Extrayez texte image avec {latex_instruction}
+# 2. Solution détaillée avec calculs LaTeX
+# 3. Résultat final clair
+
+# JSON :
+# {{
+#   "extracted_text": "Texte avec LaTeX si équations",
+#   "result": "Résultat Final : réponse concise",
+#   "steps": ["Correction Détaillées : ", "1. Analyse", "$$calculs$$", "2. Résolution"]
+# }}
+#         """
+
+#     def _build_literary_sensitive_prompt(self, niveau, type_exercice, attente):
+#         return f"""
+# ⚠️ CRÉATION 100% ORIGINALE - AUCUN COPYRIGHT ⚠️
+# Niveau {niveau} | Type: {type_exercice}
+
+# 1. Reformulez AVEC VOS MOTS
+# 2. Méthode originale d'analyse
+# 3. Exemples FICTIFS
+
+# JSON :
+# {{
+#   "extracted_text": "Reformulation originale",
+#   "result": "Méthode originale",
+#   "steps": ["Étapes originales", "Exemple fictif"]
+# }}
+#         """
+
+#     def _build_literary_moderate_prompt(self, niveau, type_exercice, attente):
+#         return f"""
+# Assistant {niveau} - {type_exercice}
+# Créez contenu original :
+# 1. Reformulation
+# 2. Analyse originale
+# 3. Exemples génériques
+
+# JSON :
+# {{
+#   "extracted_text": "Reformulation",
+#   "result": "Analyse concise",
+#   "steps": ["1. Méthode", "2. Exemple générique"]
+# }}
+#         """
+
+#     def _build_general_prompt(self, niveau, type_exercice, attente):
+#         return f"""
+# Assistant {niveau} - {type_exercice}
+# Solution originale.
+
+# JSON :
+# {{
+#   "extracted_text": "Texte extrait",
+#   "result": "Résultat final",
+#   "steps": ["Étapes"]
+# }}
+#         """
+
+#     def _parse_gemini_response(self, content, needs_latex):
+#         """Parse robuste"""
+#         try:
+#             result = json.loads(content.strip())
+#             # Supprimer LaTeX pour les exercices littéraires
+#             if not needs_latex:
+#                 result['result'] = result.get('result', '').replace('$\\text{', '').replace('}$', '')
+#                 result['steps'] = [step.replace('$\\text{', '').replace('}$', '') for step in result.get('steps', [])]
+#             return {
+#                 'success': True,
+#                 'extracted_text': result.get('extracted_text', ''),
+#                 'result': result.get('result', ''),
+#                 'steps': result.get('steps', [])
+#             }
+#         except json.JSONDecodeError:
+#             start, end = content.find('{'), content.rfind('}') + 1
+#             if start != -1 and end > start:
+#                 try:
+#                     result = json.loads(content[start:end])
+#                     if not needs_latex:
+#                         result['result'] = result.get('result', '').replace('$\\text{', '').replace('}$', '')
+#                         result['steps'] = [step.replace('$\\text{', '').replace('}$', '') for step in result.get('steps', [])]
+#                     return {
+#                         'success': True,
+#                         'extracted_text': result.get('extracted_text', content[:200]),
+#                         'result': result.get('result', ''),
+#                         'steps': result.get('steps', [content[:500]])
+#                     }
+#                 except:
+#                     pass
+        
+#         return {
+#             'success': True,
+#             'extracted_text': content[:300],
+#             'result': 'Réponse analysée',
+#             'steps': [content[:800]]
+#         }
+
+
+
+# class HistoryView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         corrections = CorrectionHistory.objects.filter(user=request.user).order_by('-created_at')
+#         serializer = CorrectionHistorySerializer(corrections, many=True)
+#         return Response(serializer.data)
 
