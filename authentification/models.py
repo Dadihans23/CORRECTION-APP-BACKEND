@@ -35,6 +35,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    school_level = models.CharField(max_length=100, blank=True, null=True)
+    institution = models.CharField(max_length=200, blank=True, null=True)
+    age = models.PositiveIntegerField(blank=True, null=True)
 
     USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = ['first_name', 'last_name']
@@ -43,6 +48,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.phone_number
+    
+    
+    
 
 class PendingUser(models.Model):
     phone_number = models.CharField(max_length=15, unique=True)
