@@ -33,8 +33,11 @@ ALLOWED_HOSTS = [
     '10.245.228.225',
     '172.20.10.2',
     '10.245.68.224' , 
-    '10.245.68.223',
-    '10.245.8.222'
+    '10.245.8.223',
+    '10.245.8.222',
+    '10.245.8.222',
+    '172.20.10.2'
+    
 ]
 
 # CORS_ALLOWED_ORIGINS = [
@@ -112,6 +115,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'authentification',
     'treatment',
+    'subscriptions',
     'corsheaders',
 ]
 

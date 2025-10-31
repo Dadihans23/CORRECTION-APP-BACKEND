@@ -34,18 +34,17 @@ class ProcessImageView(APIView):
         'Mathématiques', 'Physique-Chimie', 'SVT', 
         'Informatique', 'Économie / SES'
     ]
-
     EDUCATIONAL_LEVELS = [
         'Lycée – Terminale', 'Lycée – Première', 'Lycée – Seconde',
         'Collège (6ᵉ – 3ᵉ)', 'Supérieur – BTS / DUT', 'Supérieur – Licence'
     ]
 
     def post(self, request):
-        TEST_MODE = True
+        TEST_MODE = False
         if TEST_MODE:
-            image_path = r'C:\git_project\CORRECTION APP BACKEND\treatment\images\englishtest.png'
+            image_path = r'C:\git_project\CORRECTION APP BACKEND\treatment\images\testsvt.jpg'
             context_str = json.dumps({
-                'domaine': 'Francais',
+                'domaine': 'Général',
                 'niveau': 'Lycée – Terminale',
                 'type_exercice': 'Problème à résoudre',
                 'attente': 'Solution étape par étape',
@@ -78,36 +77,42 @@ class ProcessImageView(APIView):
             type_exercice = context.get('type_exercice', 'Problème à résoudre')
             attente = context.get('attente', 'Solution étape par étape')
             infos = context.get('infos', '')
-            
+
             logger.info(f"Contexte: Domaine={domaine}, Type={type_exercice}, Niveau={niveau}")
 
-            # ✅ EXTRACTION INITIALE DU TEXTE POUR FALLBACK
+            # EXTRACTION INITIALE DU TEXTE POUR FALLBACK
             extracted_text = self._extract_text(image_bytes)
-            
-            # ✅ ANALYSE INITIALE DE LA BRANCHE PAR L'IA
+
+            # ANALYSE INITIALE DE LA BRANCHE PAR L'IA
             branch_analysis = self._detect_branch(image_bytes, extracted_text)
-            
-            # ✅ VÉRIFICATION DE L'INCOHÉRENCE DOMAINE/BRANCHE
+
+            # VÉRIFICATION DE L'INCOHÉRENCE DOMAINE/BRANCHE
             detected_branch = branch_analysis['branch']
             detected_domain = branch_analysis['detected_domain']
             domain_mismatch = None
             if domaine != detected_domain:
-                domain_mismatch = f"L'utilisateur a indiqué '{domaine}', mais l'exercice est détecté comme '{detected_domain}' ({detected_branch})."
+                domain_mismatch = (
+                    f"L'utilisateur a indiqué '{domaine}', mais l'exercice est détecté comme "
+                    f"'{detected_domain}' ({detected_branch})."
+                )
 
-            # ✅ ANALYSE DU TYPE DE CONTENU
+            # ANALYSE DU TYPE DE CONTENU
             content_analysis = self._analyze_content_type_with_education(
                 detected_domain, type_exercice, attente, niveau
             )
-            
+
             ia_response = self.call_gemini_api(
-                image_bytes, detected_domain, niveau, type_exercice, 
+                image_bytes, detected_domain, niveau, type_exercice,
                 attente, infos, content_analysis
             )
 
-            # ✅ AJOUT DATE/HEURE BACKEND
+            # ← CORRECTION : extraire le texte AVANT de construire response_data
+            extracted_text_final = ia_response.get('extracted_text', extracted_text)
+
+            # DATE/HEURE BACKEND
             current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Préparer la réponse JSON
+            # CONSTRUCTION DE LA RÉPONSE
             response_data = {
                 'success': True,
                 'data': {
@@ -120,7 +125,7 @@ class ProcessImageView(APIView):
                     'detected_branch_explanation': branch_analysis['explanation'],
                     'domain_mismatch': domain_mismatch,
                     'response_datetime': current_datetime,
-                    'extracted_text': ia_response.get('extracted_text', extracted_text),
+                    'extracted_text': extracted_text_final,          # ← SÛR
                     'solution': {
                         'result': ia_response.get('result', ''),
                         'steps': ia_response.get('steps', [])
@@ -130,12 +135,18 @@ class ProcessImageView(APIView):
                 'educational_mode': content_analysis.get('educational_mode', False)
             }
 
+            # GESTION DES ERREURS DE GEMINI (ex. COPYRIGHT_BLOCK)
             if not ia_response.get('success', True):
                 if ia_response.get('error_type') == 'COPYRIGHT_BLOCK':
                     ia_response = self._educational_fallback(
                         detected_domain, type_exercice, niveau, content_analysis
                     )
-                
+                    # Recalcul du texte en mode fallback
+                    extracted_text_final = ia_response.get(
+                        'extracted_text',
+                        f"Mode pédagogique - {domaine}"
+                    )
+
                 if not ia_response.get('success', True):
                     response_data = {
                         'success': False,
@@ -149,14 +160,13 @@ class ProcessImageView(APIView):
                             'solution': None,
                             'detected_branch': detected_branch,
                             'detected_branch_explanation': branch_analysis['explanation'],
-                            'domain_mismatch': domain_mismatch
+                            'domain_mismatch': domain_mismatch,
+                            'extracted_text': extracted_text_final  # ← Toujours présent
                         },
                         'content_type': content_analysis['type'],
-                        'detected_branch': detected_branch,
-                        'detected_branch_explanation': branch_analysis['explanation']
                     }
 
-            # ✅ SAUVEGARDE DANS L'HISTORIQUE
+            # SAUVEGARDE DANS L'HISTORIQUE (utilise extracted_text_final)
             CorrectionHistory.objects.create(
                 user=request.user,
                 user_domain=domaine,
@@ -168,17 +178,20 @@ class ProcessImageView(APIView):
                 detected_branch_explanation=branch_analysis['explanation'],
                 domain_mismatch=domain_mismatch,
                 response_datetime=current_datetime,
-                extracted_text=response_data['data']['extracted_text'],
-                solution=response_data['data']['solution'],
+                extracted_text=extracted_text_final,               # ← CORRECTION
+                solution=response_data['data'].get('solution'),   # .get() pour éviter KeyError
                 content_type=content_analysis['type'],
                 educational_mode=content_analysis.get('educational_mode', False),
                 success=response_data['success'],
-                error_message=response_data.get('message', None)
+                error_message=response_data.get('message')
             )
 
             return Response(response_data)
 
         except json.JSONDecodeError:
+            # ← CORRECTION : même logique pour les erreurs de parsing
+            extracted_text_final = extracted_text
+            current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             response_data = {
                 'success': False,
                 'message': 'Contexte invalide.',
@@ -187,10 +200,10 @@ class ProcessImageView(APIView):
                     'user_level': niveau,
                     'user_exercise_type': type_exercice,
                     'user_expectation': attente,
-                    'user_info': infos
+                    'user_info': infos,
+                    'extracted_text': extracted_text_final
                 }
             }
-            # ✅ SAUVEGARDE DANS L'HISTORIQUE (ERREUR)
             CorrectionHistory.objects.create(
                 user=request.user,
                 user_domain=domaine,
@@ -199,11 +212,15 @@ class ProcessImageView(APIView):
                 user_expectation=attente,
                 user_info=infos,
                 success=False,
-                error_message='Contexte invalide.'
+                error_message='Contexte invalide.',
+                extracted_text=extracted_text_final
             )
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception as e:
             logger.error(f"Erreur: {str(e)}")
+            extracted_text_final = extracted_text
+            current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             response_data = {
                 'success': False,
                 'message': f'Erreur serveur: {str(e)}',
@@ -212,10 +229,10 @@ class ProcessImageView(APIView):
                     'user_level': niveau,
                     'user_exercise_type': type_exercice,
                     'user_expectation': attente,
-                    'user_info': infos
+                    'user_info': infos,
+                    'extracted_text': extracted_text_final
                 }
             }
-            # ✅ SAUVEGARDE DANS L'HISTORIQUE (ERREUR)
             CorrectionHistory.objects.create(
                 user=request.user,
                 user_domain=domaine,
@@ -224,7 +241,8 @@ class ProcessImageView(APIView):
                 user_expectation=attente,
                 user_info=infos,
                 success=False,
-                error_message=f'Erreur serveur: {str(e)}'
+                error_message=f'Erreur serveur: {str(e)}',
+                extracted_text=extracted_text_final
             )
             return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -235,7 +253,7 @@ class ProcessImageView(APIView):
             image_part = {'mime_type': 'image/jpeg', 'data': image_bytes}
             prompt = "Extrayez le texte brut de l'image sans interprétation."
             response = model.generate_content([prompt, image_part], generation_config={"temperature": 0.1})
-            return response.text.strip()[:500]  # Limite pour éviter surcharge
+            return response.text.strip()[:1000]  # Limite pour éviter surcharge
         except Exception as e:
             logger.error(f"Erreur extraction texte: {str(e)}")
             return ""
@@ -247,7 +265,7 @@ class ProcessImageView(APIView):
             image_part = {'mime_type': 'image/jpeg', 'data': image_bytes}
             prompt = f"""
 Analyse l'image et le texte suivant pour déterminer si l'exercice est SCIENTIFIQUE (Mathématiques, Physique-Chimie, SVT, Informatique, Économie/SES) ou LITTÉRAIRE (Français, Histoire-Géographie, Philosophie, Langues étrangères, Autre).
-Texte extrait : {extracted_text[:500]}
+Texte extrait : {extracted_text[:1000]}
 Retourne un JSON avec :
 - "branch": "Scientifique" ou "Littéraire"
 - "detected_domain": Le domaine spécifique (ex. "Anglais", "Mathématiques")
@@ -477,7 +495,7 @@ Corriger l'exercice de façon pédagogique et méthodique, en respectant le cadr
 JSON :
 {{
   "extracted_text": "Texte avec LaTeX si équations",
-  "result": "Résultat Final : réponse concise",
+  "result": "Résultat Final : correction de l'exercice ",
   "steps": ["Correction Détaillées : ", "1. Analyse", "$$calculs$$", "2. Résolution"]
 }}
 
@@ -548,47 +566,47 @@ Solution originale.
 JSON :
 {{
   "extracted_text": "Texte extrait",
-  "result": "Résultat final",
+  "result": "Résultat final ou correction de l'exercice",
   "steps": ["Étapes"]
 }}
         """
 
+   # ← CORRECTION : parsing plus robuste
     def _parse_gemini_response(self, content, needs_latex):
-        """Parse robuste"""
+        """Parse robuste avec fallback en cas de JSON incomplet."""
         try:
             result = json.loads(content.strip())
-            # Supprimer LaTeX pour les exercices littéraires
-            if not needs_latex:
-                result['result'] = result.get('result', '').replace('$\\text{', '').replace('}$', '')
-                result['steps'] = [step.replace('$\\text{', '').replace('}$', '') for step in result.get('steps', [])]
-            return {
-                'success': True,
-                'extracted_text': result.get('extracted_text', ''),
-                'result': result.get('result', ''),
-                'steps': result.get('steps', [])
-            }
         except json.JSONDecodeError:
-            start, end = content.find('{'), content.rfind('}') + 1
-            if start != -1 and end > start:
-                try:
+            # Tentative de récupération du bloc JSON brut
+            try:
+                start = content.find('{')
+                end = content.rfind('}') + 1
+                if start != -1 and end > start:
                     result = json.loads(content[start:end])
-                    if not needs_latex:
-                        result['result'] = result.get('result', '').replace('$\\text{', '').replace('}$', '')
-                        result['steps'] = [step.replace('$\\text{', '').replace('}$', '') for step in result.get('steps', [])]
-                    return {
-                        'success': True,
-                        'extracted_text': result.get('extracted_text', content[:200]),
-                        'result': result.get('result', ''),
-                        'steps': result.get('steps', [content[:500]])
-                    }
-                except:
-                    pass
-        
+                else:
+                    raise
+            except Exception:
+                # Fallback ultime
+                return {
+                    'success': True,
+                    'extracted_text': content[:500],
+                    'result': 'Réponse partielle analysée',
+                    'steps': [content[:1000]]
+                }
+
+        # Nettoyage LaTeX pour les domaines non-scientifiques
+        if not needs_latex:
+            result['result'] = result.get('result', '').replace('$\\text{', '').replace('}$', '')
+            result['steps'] = [
+                step.replace('$\\text{', '').replace('}$', '')
+                for step in result.get('steps', [])
+            ]
+
         return {
             'success': True,
-            'extracted_text': content[:300],
-            'result': 'Réponse analysée',
-            'steps': [content[:800]]
+            'extracted_text': result.get('extracted_text', content[:500]),
+            'result': result.get('result', ''),
+            'steps': result.get('steps', [])
         }
 
 
