@@ -5,6 +5,16 @@ from django.utils import timezone
 from django.utils.text import slugify
 import uuid
 
+
+
+# backend/models.py
+from django.db import models
+from django.utils import timezone
+
+from authentification.models import CustomUser  # Remplace 'auth_app' par le nom de l'app contenant CustomUser
+
+
+
 User = get_user_model()
 
 
@@ -83,9 +93,15 @@ class Subscription(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
+        # NE PLUS RÉINITIALISER les quotas ici !
+        # On ne fait ça QUE si les champs sont à 0 (premier abonnement)
         if not self.pk:  # Création
-            self.image_corrections_remaining = self.pack.image_corrections_limit
-            self.chat_questions_remaining = self.pack.chat_questions_limit
+            # Si les quotas ne sont PAS déjà définis → on prend ceux du pack
+            if self.image_corrections_remaining == 0:
+                self.image_corrections_remaining = self.pack.image_corrections_limit
+            if self.chat_questions_remaining == 0:
+                self.chat_questions_remaining = self.pack.chat_questions_limit
+
             if self.pack.duration > 0:
                 self.expires_at = timezone.now() + timezone.timedelta(days=self.pack.duration)
         super().save(*args, **kwargs)
@@ -135,3 +151,33 @@ class UsageLog(models.Model):
 
     def __str__(self):
         return f"{self.action} - {self.subscription.user.email} - {self.timestamp.strftime('%d/%m %H:%M')}"
+    
+
+
+
+
+
+class Transaction(models.Model):
+    TRANSACTION_TYPES = (
+        ('subscription', 'Souscription'),
+        ('upgrade', 'Upgrade'),
+    )
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='transactions')
+    # related_name différents
+    pack = models.ForeignKey(
+        Pack,
+        on_delete=models.CASCADE,
+        related_name='current_pack_transactions'  # UNIQUEMENT pour le pack actuel
+    )
+    previous_pack = models.ForeignKey('Pack', on_delete=models.SET_NULL, null=True, blank=True)
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    price_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.email} → {self.pack.name} ({self.get_transaction_type_display()})"
+    

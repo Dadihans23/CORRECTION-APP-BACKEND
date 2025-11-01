@@ -11,8 +11,15 @@ from rest_framework.response import Response
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
-from .models import CorrectionHistory  # Import du modèle
+from .models import CorrectionHistory   # Import du modèle
 from .serializers import CorrectionHistorySerializer
+from subscriptions.models import   UsageLog # Import du modèle
+
+
+from rest_framework.decorators import api_view, schema
+
+
+
 
 logger = logging.getLogger(__name__)
 genai.configure(api_key=settings.GEMINI_API_KEY)
@@ -618,6 +625,31 @@ class HistoryView(APIView):
         serializer = CorrectionHistorySerializer(corrections, many=True)
         return Response(serializer.data)
 
+
+
+@api_view(['GET'])
+def user_stats(request):
+    from django.db.models import Count
+    permission_classes = [IsAuthenticated]
+
+    
+    image_corrections = CorrectionHistory.objects.filter(
+        user=request.user
+    ).count()
+    
+    # Chat questions (si tu as déjà des UsageLog)
+    chat_questions = UsageLog.objects.filter(
+        subscription__user=request.user,
+        action='CHAT_QUESTION'
+    ).count()
+
+    return Response({
+        'success': True,
+        'data': {
+            'used_image_corrections': image_corrections,
+            'used_chat_questions': chat_questions,
+        }
+    })
 
 
 
