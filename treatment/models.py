@@ -2,6 +2,16 @@ from django.db import models
 import json
 from authentification.models import CustomUser  # Remplace 'auth_app' par le nom de l'app contenant CustomUser
 
+# backend/models.py
+from django.db import models
+from django.utils import timezone
+
+# backend/models.py
+from django.db import models
+from django.utils import timezone
+import uuid
+
+
 class ExerciseProcessing(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     image = models.ImageField(upload_to='exercises/')
@@ -45,3 +55,42 @@ class CorrectionHistory(models.Model):
     def __str__(self):
         return f"Correction {self.id} by {self.user.phone_number} at {self.created_at}"
     
+
+
+
+class ChatSession(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='chat_sessions')
+    title = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def save(self, *args, **kwargs):
+        if not self.title and self.messages.exists():
+            first_msg = self.messages.filter(role='user').first()
+            if first_msg:
+                self.title = first_msg.content[:50] + ("..." if len(first_msg.content) > 50 else "")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title or "Nouvelle conversation"
+
+
+class ChatMessage(models.Model):
+    ROLE_CHOICES = (
+        ('user', 'Utilisateur'),
+        ('model', 'IA'),
+    )
+
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages' , null=True,  blank=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    content = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+    gemini_response_time = models.FloatField(null=True, blank=True)  # en ms
+
+    class Meta:
+        ordering = ['created_at']

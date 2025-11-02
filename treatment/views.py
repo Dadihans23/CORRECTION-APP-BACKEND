@@ -11,13 +11,43 @@ from rest_framework.response import Response
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
-from .models import CorrectionHistory   # Import du modèle
-from .serializers import CorrectionHistorySerializer
-from subscriptions.models import   UsageLog # Import du modèle
+from .models import CorrectionHistory  , ChatMessage  , ChatSession# Import du modèle
+from .serializers import CorrectionHistorySerializer , ChatMessageSerializer , ChatSessionDetailSerializer  
+from subscriptions.models import   UsageLog , Subscription   # Import du modèle
+
+import google.generativeai as genai
+from django.conf import settings
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 
 from rest_framework.decorators import api_view, schema
 
+
+
+
+# backend/views.py
+import google.generativeai as genai
+from django.conf import settings
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+
+
+
+# backend/views.py
+# backend/views.py
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from .models import ChatSession, ChatMessage
+from .serializers import ChatSessionDetailSerializer , ChatMessageSerializer
+from django.conf import settings
 
 
 
@@ -652,7 +682,131 @@ def user_stats(request):
     })
 
 
+# backend/views.py
+import google.generativeai as genai
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
+from .models import ChatSession, ChatMessage
+from .serializers import (
+    ChatSessionListSerializer, ChatSessionDetailSerializer, ChatMessageSerializer
+)
 
+genai.configure(api_key=settings.GEMINI_API_KEY)
+
+class ChatSessionListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChatSessionListSerializer
+
+    def get_queryset(self):
+        return ChatSession.objects.filter(user=self.request.user, is_active=True)
+
+    def perform_create(self, serializer):
+        # Créer avec titre générique
+        session = serializer.save(user=self.request.user)
+        # Premier message IA
+        ChatMessage.objects.create(
+            session=session,
+            role='assistant',
+            content="Bonjour ! Posez-moi une question sur vos devoirs."
+        )
+
+class ChatSessionDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChatSessionDetailSerializer
+
+    def get_queryset(self):
+        return ChatSession.objects.filter(user=self.request.user, is_active=True)
+
+class ChatMessageCreateView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChatMessageSerializer
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        session_id = request.data.get('session_id')
+        user_message = request.data.get('content', '').strip()
+
+        if not user_message:
+            return Response({
+                'success': False,
+                'message': 'Contenu du message requis.'
+            }, status=400)
+
+        # === CRÉER SESSION SI ABSENTE ===
+        if not session_id:
+            session = ChatSession.objects.create(
+                user=user,
+                title="Nouvelle discussion"
+            )
+            ChatMessage.objects.create(
+                session=session,
+                role='assistant',
+                content="Bonjour ! Posez-moi une question sur vos devoirs."
+            )
+        else:
+            try:
+                session = ChatSession.objects.get(id=session_id, user=user, is_active=True)
+            except ChatSession.DoesNotExist:
+                return Response({'success': False, 'message': 'Session introuvable.'}, status=404)
+
+        # === VÉRIFIER QUOTA ===
+        try:
+            subscription = Subscription.objects.get(user=user, is_active=True)
+            if subscription.chat_questions_remaining <= 0:
+                return Response({
+                    'success': False,
+                    'message': 'Quota de questions épuisé. Passez à un pack supérieur.',
+                    'upgrade_required': True
+                }, status=403)
+        except Subscription.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Aucun abonnement actif.'
+            }, status=403)
+
+        # === SAUVEGARDER MESSAGE UTILISATEUR ===
+        user_msg = ChatMessage.objects.create(
+            session=session,
+            role='user',
+            content=user_message
+        )
+
+        # === APPEL GEMINI ===
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        try:
+            start_time = timezone.now()
+            response = model.generate_content(user_message)
+            response_time = (timezone.now() - start_time).total_seconds() * 1000
+
+            ai_msg = ChatMessage.objects.create(
+                session=session,
+                role='model',  # ← 'model' pas 'assistant'
+                content=response.text,
+                gemini_response_time=round(response_time, 2)
+            )
+            
+            subscription.chat_questions_remaining -= 1
+            subscription.save()
+
+            if session.messages.count() == 2:
+                session.title = user_message[:47] + ("..." if len(user_message) > 50 else "")
+                session.save()
+
+            return Response({
+                'success': True,
+                'message': 'Réponse générée',
+                'data': ChatMessageSerializer(ai_msg).data,
+                'remaining_questions': subscription.chat_questions_remaining,
+                'session_id': session.id
+            })
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Erreur IA : {str(e)}'
+            }, status=500)
 
 
 # import logging
