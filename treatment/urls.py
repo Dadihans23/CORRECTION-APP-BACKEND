@@ -9,7 +9,7 @@ urlpatterns = [
 
     
     path('chat/sessions/', ChatSessionListCreateView.as_view(), name='chat-sessions'),
-    path('chat/sessions/<int:pk>/', ChatSessionDetailView.as_view(), name='chat-session-detail'),
+    path('chat/sessions/<uuid:pk>/', ChatSessionDetailView.as_view(), name='chat-session-detail'),
     path('chat/message/', ChatMessageCreateView.as_view(), name='chat-message'),
 
 
