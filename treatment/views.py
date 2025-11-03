@@ -718,7 +718,9 @@ class ChatSessionDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return ChatSession.objects.filter(user=self.request.user, is_active=True)
-
+    
+    
+# views.py → ChatMessageCreateView (VERSION MÉMOIRE ACTIVE)
 class ChatMessageCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ChatMessageSerializer
@@ -740,9 +742,10 @@ class ChatMessageCreateView(generics.CreateAPIView):
                 user=user,
                 title="Nouvelle discussion"
             )
+            # Message d'accueil
             ChatMessage.objects.create(
                 session=session,
-                role='assistant',
+                role='model',
                 content="Bonjour ! Posez-moi une question sur vos devoirs."
             )
         else:
@@ -773,33 +776,75 @@ class ChatMessageCreateView(generics.CreateAPIView):
             content=user_message
         )
 
-        # === APPEL GEMINI ===
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        # === APPEL GEMINI AVEC MÉMOIRE (LE COEUR DU CHATBOT) ===
+        model = genai.GenerativeModel('gemini-2.5-flash')  # Plus rapide & meilleur contexte
+
+        # Récupère TOUT l'historique
+        history = session.messages.all().order_by('created_at')
+        chat_history = []
+        for msg in history:
+            role = "user" if msg.role == 'user' else "model"
+            chat_history.append({"role": role, "parts": [msg.content]})
+
+        # Démarre le chat avec mémoire
+        chat = model.start_chat(history=chat_history)
+
+        # Envoie SEULEMENT le nouveau message
         try:
             start_time = timezone.now()
-            response = model.generate_content(user_message)
+            response = chat.send_message(user_message)
             response_time = (timezone.now() - start_time).total_seconds() * 1000
 
+            # Sauvegarde réponse IA
             ai_msg = ChatMessage.objects.create(
                 session=session,
-                role='model',  # ← 'model' pas 'assistant'
+                role='model',
                 content=response.text,
                 gemini_response_time=round(response_time, 2)
             )
-            
+
+            # Déduit quota
             subscription.chat_questions_remaining -= 1
             subscription.save()
 
-            if session.messages.count() == 2:
-                session.title = user_message[:47] + ("..." if len(user_message) > 50 else "")
-                session.save()
+            # TITRE PRO PAR GEMINI
+            if session.messages.filter(role='user').count() == 1:
+                title_prompt = f"""
+                Tu es un expert en titres accrocheurs.
+                Voici le premier message de l'utilisateur : "{user_message}"
+                
+                Génère UN SEUL titre court (5-8 mots max), professionnel et pédagogique.
+                Exemples :
+                - "Racine carrée expliquée simplement"
+                - "Adverbes : 3 exemples clés"
+                - "Participe passé : règle facile"
+                
+                Réponds UNIQUEMENT le titre, rien d'autre.
+                """
+                
+                try:
+                    title_response = model.generate_content(title_prompt)
+                    suggested_title = title_response.text.strip()
+                    
+                    if len(suggested_title) > 60:
+                        suggested_title = suggested_title[:57] + "..."
+                        
+                    session.title = suggested_title
+                    session.save()
+                    logger.info(f"Titre IA généré : {suggested_title}")
+                    
+                except Exception as e:
+                    logger.warning(f"Échec titre IA : {e}")
+                    fallback = user_message[:47] + ("..." if len(user_message) > 50 else "")
+                    session.title = fallback
+                    session.save()
 
             return Response({
                 'success': True,
                 'message': 'Réponse générée',
                 'data': ChatMessageSerializer(ai_msg).data,
                 'remaining_questions': subscription.chat_questions_remaining,
-                'session_id': session.id
+                'session_id': str(session.id)
             })
 
         except Exception as e:
@@ -807,7 +852,6 @@ class ChatMessageCreateView(generics.CreateAPIView):
                 'success': False,
                 'message': f'Erreur IA : {str(e)}'
             }, status=500)
-
 
 # import logging
 # import google.generativeai as genai
