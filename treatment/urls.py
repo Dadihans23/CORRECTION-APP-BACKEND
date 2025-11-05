@@ -14,6 +14,8 @@ urlpatterns = [
     path('test/local-image/', test_local_and_save),
     path('test/production-image/', correct_and_upload),        # ← POUR FLUTTER
     path('test/history/', history_corrections),
+    path('user/stats/', user_stats),
+
 
 
 
