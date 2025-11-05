@@ -654,31 +654,6 @@ class HistoryView(APIView):
         serializer = CorrectionHistorySerializer(corrections, many=True)
         return Response(serializer.data)
 
-
-
-@api_view(['GET'])
-def user_stats(request):
-    from django.db.models import Count
-    permission_classes = [IsAuthenticated]
-    image_corrections = CorrectionHistory.objects.filter(
-        user=request.user
-    ).count()
-    
-    # Chat questions (si tu as déjà des UsageLog)
-    chat_questions = UsageLog.objects.filter(
-        subscription__user=request.user,
-        action='CHAT_QUESTION'
-    ).count()
-
-    return Response({
-        'success': True,
-        'data': {
-            'used_image_corrections': image_corrections,
-            'used_chat_questions': chat_questions,
-        }
-    })
-
-
 # backend/views.py
 import google.generativeai as genai
 from rest_framework import generics, status
@@ -976,6 +951,7 @@ def test_local_and_save(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def correct_and_upload(request):
+    user = request.user
     image_file = request.FILES.get('image')
     if not image_file:
         return Response({'success': False, 'message': 'Image requise'}, status=400)
@@ -1046,10 +1022,30 @@ Règles de style Markdown :
 ⚠️ Ne renvoie que du Markdown, sans HTML ni balises JSON.
 """
 
+
+    # === VÉRIFIER QUOTA ===
+    try:
+        subscription = Subscription.objects.get(user=user, is_active=True)
+        if subscription.chat_questions_remaining <= 0:
+            return Response({
+                'success': False,
+                'message': 'Quota de questions épuisé. Passez à un pack supérieur.',
+                'upgrade_required': True
+            }, status=403)
+    except Subscription.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Aucun abonnement actif.'
+        }, status=403)
+
     try:
         response = model.generate_content([prompt, image_part])
         correction.correction_text = response.text
         correction.save()
+        
+         # Déduit quota
+        subscription.image_corrections_remaining -= 1
+        subscription.save()
 
         return Response({
             'success': True,
@@ -1093,6 +1089,26 @@ def history_corrections(request):
 
 
 
+
+
+# treatment/views.py
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_stats(request):
+    subscription = Subscription.objects.filter(user=request.user, is_active=True).first()
+    if not subscription:
+        return Response({
+            'success': False,
+            'message': 'Aucun abonnement actif'
+        })
+
+    return Response({
+        'success': True,
+        'remaining_images': subscription.image_corrections_remaining,
+        'total_images': subscription.pack.image_corrections_limit,
+        'remaining_questions': subscription.chat_questions_remaining,
+        'total_questions': subscription.pack.chat_questions_limit,
+    })
     
     
 # import logging

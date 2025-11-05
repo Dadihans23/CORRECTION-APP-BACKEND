@@ -41,16 +41,6 @@ ALLOWED_HOSTS = [
     
 ]
 
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",  # Frontend local (ex. Flutter Web)
-#     "http://127.0.0.1:3000",
-#     "http://10.144.175.151:3000",  # IP frontend si applicable
-#     "http://10.150.76.151:3000",
-#     "http://10.245.228.223:3000",
-#     "http://10.245.228.222:3000",
-#     "capacitor://localhost",  # Pour Flutter mobile (Capacitor)
-#     "ionic://localhost",     # Pour Ionic si utilisé
-# ]
 
 # ✅ Autoriser headers et méthodes
 CORS_ALLOW_METHODS = [
@@ -187,6 +177,9 @@ STATIC_URL = '/static/'
 STATIC_ROOT = 'static'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = 'media'
+
+
+
 
 
 # Default primary key
