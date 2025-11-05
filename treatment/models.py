@@ -94,3 +94,27 @@ class ChatMessage(models.Model):
 
     class Meta:
         ordering = ['created_at']
+        
+        
+        
+class ImageCorrection(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='image_corrections')
+    image = models.ImageField(upload_to='corrections/%Y/%m/%d/')
+    domaine = models.CharField(max_length=100, default='Mathématiques')
+    niveau = models.CharField(max_length=100, default='Collège')
+    type_exercice = models.CharField(max_length=100, default='Problème')
+    attente = models.CharField(max_length=100, default='Étape par étape')
+    infos_complementaires = models.TextField(blank=True)
+
+    # Résultat Gemini
+    correction_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Correction Photo"
+        verbose_name_plural = "Corrections Photo"
+
+    def __str__(self):
+        return f"{self.domaine} - {self.niveau} - {self.created_at.strftime('%d/%m %H:%M')}"        
