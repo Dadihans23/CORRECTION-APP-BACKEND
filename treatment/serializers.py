@@ -4,7 +4,9 @@ from rest_framework import serializers
 from .models import CorrectionHistory , ChatMessage , ChatSession
 # backend/serializers.py
 from rest_framework import serializers
-from .models import ChatSession, ChatMessage
+from .models import ChatSession, ChatMessage , ImageCorrection
+
+
 
 
 
@@ -58,3 +60,26 @@ class ChatSessionDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
         fields = ['id', 'title', 'created_at', 'updated_at', 'messages']
+        
+        
+        
+        
+
+
+
+class ImageCorrectionSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ImageCorrection
+        fields = [
+            'id', 'domaine', 'niveau', 'type_exercice', 'attente',
+            'infos_complementaires', 'correction_text',
+            'created_at', 'image_url'
+        ]
+        read_only_fields = ['created_at', 'image_url']
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None        

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ProcessImageView , HistoryView , user_stats , ChatSessionDetailView , ChatSessionListCreateView  , ChatSessionDetailView , ChatMessageCreateView
+from .views import ProcessImageView , HistoryView , user_stats , ChatSessionDetailView , ChatSessionListCreateView  , ChatSessionDetailView , ChatMessageCreateView , test_local_and_save , history_corrections , correct_and_upload
 
 urlpatterns = [
     path('process-image/', ProcessImageView.as_view(), name='process-image'),
@@ -11,6 +11,10 @@ urlpatterns = [
     path('chat/sessions/', ChatSessionListCreateView.as_view(), name='chat-sessions'),
     path('chat/sessions/<uuid:pk>/', ChatSessionDetailView.as_view(), name='chat-session-detail'),
     path('chat/message/', ChatMessageCreateView.as_view(), name='chat-message'),
+    path('test/local-image/', test_local_and_save),
+    path('test/production-image/', correct_and_upload),        # ← POUR FLUTTER
+    path('test/history/', history_corrections),
+
 
 
 ]

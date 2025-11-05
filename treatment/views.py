@@ -11,8 +11,8 @@ from rest_framework.response import Response
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
-from .models import CorrectionHistory  , ChatMessage  , ChatSession# Import du modèle
-from .serializers import CorrectionHistorySerializer , ChatMessageSerializer , ChatSessionDetailSerializer  
+from .models import CorrectionHistory  , ChatMessage  , ChatSession , ImageCorrection# Import du modèle
+from .serializers import CorrectionHistorySerializer , ChatMessageSerializer , ChatSessionDetailSerializer , ImageCorrectionSerializer
 from subscriptions.models import   UsageLog , Subscription   # Import du modèle
 
 import google.generativeai as genai
@@ -649,7 +649,6 @@ JSON :
 
 class HistoryView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
         corrections = CorrectionHistory.objects.filter(user=request.user).order_by('-created_at')
         serializer = CorrectionHistorySerializer(corrections, many=True)
@@ -661,8 +660,6 @@ class HistoryView(APIView):
 def user_stats(request):
     from django.db.models import Count
     permission_classes = [IsAuthenticated]
-
-    
     image_corrections = CorrectionHistory.objects.filter(
         user=request.user
     ).count()
@@ -853,6 +850,251 @@ class ChatMessageCreateView(generics.CreateAPIView):
                 'message': f'Erreur IA : {str(e)}'
             }, status=500)
 
+
+
+
+
+# views.py
+import os
+from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+import google.generativeai as genai
+import base64
+
+# treatment/views.py
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def test_local_and_save(request):
+    filename = request.data.get('filename')
+    if not filename:
+        return Response({'success': False, 'message': 'filename requis'}, status=400)
+
+    # === CHEMIN LOCAL ===
+    file_path = os.path.join(settings.BASE_DIR, 'treatment', 'media', 'images', filename)
+    if not os.path.exists(file_path):
+        return Response({'success': False, 'message': f'Image non trouvée : {filename}'}, status=404)
+
+    # === CONTEXTE ===
+    domaine = request.data.get('domaine', 'Mathématiques')
+    niveau = request.data.get('niveau', 'Collège')
+    type_ex = request.data.get('type_exercice', 'Problème')
+    attente = request.data.get('attente', 'Étape par étape')
+    infos = request.data.get('infos', '')
+
+    # === SAUVEGARDE DANS LA BASE (même sans upload) ===
+    # On copie l'image dans media/corrections/ pour l'historique
+    from django.core.files import File
+    import shutil
+    from datetime import datetime
+
+    # Crée le dossier si besoin
+    upload_dir = os.path.join(settings.MEDIA_ROOT, 'corrections', datetime.now().strftime('%Y/%m/%d'))
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Copie le fichier
+    new_filename = f"{request.user.id}_{int(datetime.now().timestamp())}_{filename}"
+    destination_path = os.path.join(upload_dir, new_filename)
+    shutil.copy(file_path, destination_path)
+
+    # Sauvegarde en base
+    correction = ImageCorrection.objects.create(
+        user=request.user,
+        domaine=domaine,
+        niveau=niveau,
+        type_exercice=type_ex,
+        attente=attente,
+        infos_complementaires=infos,
+        correction_text="Analyse en cours...",
+    )
+    # Associe l'image
+    with open(destination_path, 'rb') as f:
+        correction.image.save(new_filename, File(f), save=True)
+
+    # === GEMINI VISION ===
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    model = genai.GenerativeModel('gemini-2.5-flash')
+
+    with open(file_path, "rb") as img_file:
+        image_bytes = img_file.read()
+
+    # === CORRECT MIME TYPE ===
+    ext = filename.split('.')[-1].lower()
+    mime_type = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'webp': 'image/webp',
+        'gif': 'image/gif',
+    }.get(ext, 'image/jpeg')
+
+    image_part = {
+        "mime_type": mime_type,
+        "data": base64.b64encode(image_bytes).decode('utf-8')
+    }
+    
+    prompt = f"""
+    CORRIGE CET EXERCICE PHOTO
+    Matière : {domaine}
+    Niveau : {niveau}
+    Type : {type_ex}
+    Attente : {attente}
+    Infos : {infos}
+
+    Réponds en Markdown avec :
+    - Question reconnue
+    - Correction détaillée
+    - Réponse finale en cadre
+    """
+
+    try:
+        response = model.generate_content([prompt, image_part])
+        correction.correction_text = response.text
+        correction.save()
+
+        return Response({
+            'success': True,
+            'correction_id': correction.id,
+            'filename': filename,
+            'correction': response.text,
+            'image_url': correction.image.url,
+            'saved_at': correction.created_at.isoformat()
+        })
+
+    except Exception as e:
+        correction.correction_text = f"Erreur Gemini : {str(e)}"
+        correction.save()
+        return Response({'success': False, 'error': str(e)}, status=500)
+    
+
+
+
+
+
+# treatment/views.py
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def correct_and_upload(request):
+    image_file = request.FILES.get('image')
+    if not image_file:
+        return Response({'success': False, 'message': 'Image requise'}, status=400)
+
+    # === CONTEXTE ===
+    domaine = request.data.get('domaine', 'Mathématiques')
+    niveau = request.data.get('niveau', 'Collège')
+    type_ex = request.data.get('type_exercice', 'Problème')
+    attente = request.data.get('attente', 'Étape par étape')
+    infos = request.data.get('infos', '')
+
+    # === SAUVEGARDE IMMÉDIATE ===
+    correction = ImageCorrection.objects.create(
+        user=request.user,
+        domaine=domaine,
+        niveau=niveau,
+        type_exercice=type_ex,
+        attente=attente,
+        infos_complementaires=infos,
+        correction_text="Analyse en cours...",
+        image=image_file,  # ← DIRECTEMENT !
+    )
+
+    # === GEMINI VISION ===
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    model = genai.GenerativeModel('gemini-2.5-flash')
+    
+    image_file.seek(0)  # ← REWINDE LE FICHIER
+    image_bytes = image_file.read()
+    ext = image_file.name.split('.')[-1].lower() if '.' in image_file.name else 'jpeg'
+    mime_type = {
+        'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+        'png': 'image/png', 'webp': 'image/webp', 'gif': 'image/gif'
+    }.get(ext, 'image/jpeg')
+
+    image_part = {
+        "mime_type": mime_type,
+        "data": base64.b64encode(image_bytes).decode('utf-8')
+    }
+
+    prompt = f"""
+Tu es une intelligence artificielle experte en éducation, chargée de corriger des exercices à partir d’une photo.  
+Ta mission : fournir une réponse claire, structurée et agréable à lire sur mobile.
+
+Voici le contexte :
+- Matière : {domaine}
+- Niveau : {niveau}
+- Type : {type_ex}
+- Attente : {attente}
+- Infos supplémentaires : {infos}
+
+Réponds uniquement en **Markdown lisible et esthétique**, dans le style de l’application mobile ChatGPT.
+
+Structure attendue :
+1. **Question reconnue** (si identifiable)
+2. **Correction détaillée**, étape par étape ou par paragraphe clair
+3. **Traite l'exercice **, bien intégrée au texte (pas de cadre obligatoire)
+
+Règles de style Markdown :
+- Utilise des titres (`##`, `###`) seulement si c’est utile.
+- Mets les mots importants en **gras**.
+- Utilise des listes à puces ou numérotées pour les étapes.
+- Utilise des blocs de code (```langage) pour les formules, calculs, ou extraits de texte.
+- Un seul saut de ligne entre les paragraphes (évite les grands espaces).
+- Pas de phrases inutiles comme “Voici la correction” ou “Bien sûr !”.
+- Ton : clair, pédagogique, fluide — comme une vraie explication naturelle.
+
+⚠️ Ne renvoie que du Markdown, sans HTML ni balises JSON.
+"""
+
+    try:
+        response = model.generate_content([prompt, image_part])
+        correction.correction_text = response.text
+        correction.save()
+
+        return Response({
+            'success': True,
+            'correction_id': correction.id,
+            'correction': response.text,
+            'image_url': correction.image.url,
+            'saved_at': correction.created_at.isoformat()
+        })
+
+    except Exception as e:
+        correction.correction_text = f"Erreur Gemini : {str(e)}"
+        correction.save()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+
+# === HISTORIQUE DES CORRECTIONS PHOTO ===
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def history_corrections(request):
+    corrections = ImageCorrection.objects.filter(user=request.user).order_by('-created_at')
+    data = []
+    for c in corrections:
+        data.append({
+            'id': c.id,
+            'domaine': c.domaine,
+            'niveau': c.niveau,
+            'type_exercice': c.type_exercice,
+            'attente': c.attente,
+            'infos': c.infos_complementaires,
+            'correction': c.correction_text,
+            'image_url': request.build_absolute_uri(c.image.url),
+            'date': c.created_at.strftime("%d/%m/%Y %H:%M"),
+        })
+    
+    return Response({
+        'success': True,
+        'total': corrections.count(),
+        'history': data
+    })
+
+
+
+    
+    
 # import logging
 # import google.generativeai as genai
 # from django.conf import settings
