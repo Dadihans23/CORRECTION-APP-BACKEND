@@ -41,6 +41,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     institution = models.CharField(max_length=200, blank=True, null=True)
     age = models.PositiveIntegerField(blank=True, null=True)
 
+
+    date_joined = models.DateTimeField(default=timezone.now)
+    
     USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = ['first_name', 'last_name']
 

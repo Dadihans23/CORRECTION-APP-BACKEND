@@ -1,0 +1,18 @@
+.justified-text {
+    text-align: justify;
+}
+.alert-error {
+    background-color: #fde2e2 !important; /* Fond rouge clair */
+    border-color: #faca00 !important; /* Bordure jaune */
+    color: #e53e3e !important; /* Texte rouge */
+    padding: 1rem !important; /* Espacement intérieur */
+    border-radius: 0.375rem !important; /* Coins arrondis */
+}
+
+.custom-bullet {
+    color: #02A195;
+}
+
+
+
+

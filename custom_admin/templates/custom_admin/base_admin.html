@@ -1,0 +1,110 @@
+{% extends 'custom_admin/base_common.html' %}
+
+{% block logo_url %}{% url "custom_admin:dashboard" %}{% endblock %}
+{% block logo_text %}🛡️ Admin{% endblock %}
+
+{% block user_dropdown_menu %}
+<li><a href="{% url 'custom_admin:dashboard' %}">Dashboard Admin</a></li>
+<li><a href="{% url 'admin:index' %}">Admin Django</a></li>
+{% endblock %}
+
+{% block sidebar_menu %}
+<!-- Admin Dashboard -->
+<li class="accordion-menu-item">
+    <a href='{% url "custom_admin:dashboard" %}' class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        <i class="menu-icon mdi mdi-view-dashboard"></i><span>🛡️ Dashboard Admin</span>
+    </a>
+</li>
+
+<!-- Gestion des Utilisateurs -->
+<li class="accordion-menu-item has-submenu">
+    <a href="#" class="accordion-toggle">
+        <i class="menu-icon mdi mdi-account-multiple"></i><span>Gestion Utilisateurs</span>
+        <i class="mdi mdi-chevron-down accordion-arrow"></i>
+    </a>
+    <ul class="sub-menu">
+        <li><a href="{% url 'custom_admin:users' %}" class="{% if request.resolver_match.url_name == 'users' %}active{% endif %}">👥 Tous les utilisateurs</a></li>
+        <li><a href="{% url 'custom_admin:user_create' %}" class="{% if request.resolver_match.url_name == 'user_create' %}active{% endif %}">➕ Ajouter utilisateur</a></li>
+        <li><a href="{% url 'custom_admin:user_stats' %}">📊 Stats utilisateurs</a></li>
+    </ul>
+</li>
+
+<!-- Gestion Requests & Analytics -->
+
+
+<!-- Gestion Financière -->
+<li class="accordion-menu-item has-submenu">
+    <a href="#" class="accordion-toggle">
+        <i class="menu-icon mdi mdi-currency-eur"></i><span>Gestion Financière</span>
+        <i class="mdi mdi-chevron-down accordion-arrow"></i>
+    </a>
+    <ul class="sub-menu">
+        <li><a href="{% url 'custom_admin:subscriptions' %}" class="{% if request.resolver_match.url_name == 'subscriptions' %}active{% endif %}">💳 Souscriptions</a></li>
+        <li><a href="{% url 'custom_admin:packs' %}" class="{% if request.resolver_match.url_name == 'packs' %}active{% endif %}">📦 Gestion des packs</a></li>
+        <li><a href="{% url 'custom_admin:billing_stats' %}">💰 Stats facturation</a></li>
+    </ul>
+</li>
+
+
+
+<!-- Rapports & Paramètres -->
+<li class="accordion-menu-item has-submenu">
+    <a href="#" class="accordion-toggle">
+        <i class="menu-icon mdi mdi-cog"></i><span>Administration</span>
+        <i class="mdi mdi-chevron-down accordion-arrow"></i>
+    </a>
+    <ul class="sub-menu">
+        <li><a href="{% url 'custom_admin:reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">📋 Rapports</a></li>
+        <li><a href="" class="{% if request.resolver_match.url_name == 'settings' %}active{% endif %}">⚙️ Paramètres système</a></li>
+        <li><a href="{% url 'admin:index' %}">🔧 Django Admin</a></li>
+    </ul>
+</li>
+
+
+{% endblock %}
+
+{% block custom_js %}
+<!-- Scripts spécifiques à l'admin -->
+<script>
+// Fonctions utilitaires pour l'admin
+function showAdminStats(type) {
+    if (type === 'users') {
+        window.location.href = "{% url 'custom_admin:user_stats' %}";
+    }
+}
+
+function showAdminRequests(type) {
+    const baseUrl = "";
+    if (type === 'all') {
+        window.location.href = baseUrl;
+    } else {
+        window.location.href = `${baseUrl}?type=${type}`;
+    }
+}
+
+function showBillingStats() {
+    window.location.href = "{% url 'custom_admin:billing_stats' %}";
+}
+
+function showRevenueAnalytics() {
+    window.location.href = "";
+}
+
+// Admin-specific utilities
+window.EsacodeAdmin = {
+    exportData: function(format) {
+        console.log(`Exporting data in ${format} format`);
+        // Implementation here
+    },
+    
+    bulkAction: function(action, ids) {
+        console.log(`Performing ${action} on items:`, ids);
+        // Implementation here
+    },
+    
+    refreshStats: function() {
+        location.reload();
+    }
+};
+</script>
+{% endblock %}

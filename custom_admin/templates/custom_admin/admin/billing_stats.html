@@ -1,0 +1,119 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Facturation & Revenus - Corrige Moi Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title mb-4">
+                <h2 class="fw-bold">Facturation & Revenus</h2>
+                <p class="text-muted">Suivi financier complet de la plateforme</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ billing.total_revenue|floatformat:0 }} CFA</h4>
+                        <p class="text-muted small mb-0">Revenus totaux</p>
+                    </div>
+                    <i class="mdi mdi-currency-usd fs-2 text-success"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ billing.this_month_revenue|floatformat:0 }} CFA</h4>
+                        <p class="text-muted small mb-0">Ce mois</p>
+                    </div>
+                    <i class="mdi mdi-trending-up fs-2 {% if billing.growth_positive %}text-success{% else %}text-danger{% endif %}"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{% if billing.growth_positive %}+{% endif %}{{ billing.growth_rate }}%</h4>
+                        <p class="text-muted small mb-0">vs mois dernier</p>
+                    </div>
+                    <i class="mdi mdi-chart-line fs-2 {% if billing.growth_positive %}text-success{% else %}text-danger{% endif %}"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ billing.active_subs }}</h4>
+                        <p class="text-muted small mb-0">Abonnés actifs</p>
+                    </div>
+                    <i class="mdi mdi-account-star fs-2 text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Évolution mensuelle des revenus</h5>
+                </div>
+                <div class="card-body">
+                    <div id="revenueChart"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Top 5 clients (revenus)</h5>
+                </div>
+                <div class="card-body">
+                    {% for u in billing.top_revenue_users %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <strong>{{ u.user__phone_number }}</strong><br>
+                            <small class="text-muted">{{ u.user__first_name }} {{ u.user__last_name }}</small>
+                        </div>
+                        <strong class="text-success">{{ u.total_spent|floatformat:0 }} CFA</strong>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">Aucune donnée</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'custom_admin/js/plugins/apexcharts.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const options = {
+        series: [{ name: 'Revenus', data: {{ billing.monthly_revenue|safe }} }],
+        chart: { type: 'area', height: 300, toolbar: { show: false } },
+        colors: ['#10b981'],
+        xaxis: { categories: {{ billing.monthly_labels|safe }} },
+        yaxis: { labels: { formatter: v => v.toLocaleString() + ' CFA' } },
+        fill: { opacity: 0.1 },
+        stroke: { width: 2 },
+        dataLabels: { enabled: false }
+    };
+    new ApexCharts(document.querySelector("#revenueChart"), options).render();
+});
+</script>
+{% endblock %}

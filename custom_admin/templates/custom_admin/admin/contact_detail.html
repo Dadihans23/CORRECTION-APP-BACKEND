@@ -1,0 +1,117 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Message #{{ contact.id }} - Esacode Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3>Message de Contact #{{ contact.id }}</h3>
+                        <p class="text-muted mb-0">Détails du message</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" onclick="replyToMessage()">
+                            <i class="mdi mdi-reply"></i> Répondre
+                        </button>
+                        <a href="{% url 'custom_admin:contacts' %}" class="btn btn-outline-secondary">
+                            <i class="mdi mdi-arrow-left"></i> Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ contact.subject }}</h5>
+                    <span class="badge {% if contact.is_read %}bg-secondary{% else %}bg-primary{% endif %}">
+                        {% if contact.is_read %}Lu{% else %}Non lu{% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>De:</strong> {{ contact.name }} &lt;{{ contact.email }}&gt;<br>
+                        <strong>Date:</strong> {{ contact.submitted_at|date:"d/m/Y à H:i" }}
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="message-content">
+                        <p>{{ contact.message|linebreaks }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="replyToMessage()">
+                            <i class="mdi mdi-reply"></i> Répondre
+                        </button>
+                        <button class="btn btn-success" onclick="markAsRead()">
+                            <i class="mdi mdi-eye"></i> Marquer comme lu
+                        </button>
+                        <button class="btn btn-info" onclick="forwardMessage()">
+                            <i class="mdi mdi-forward"></i> Transférer
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteMessage()">
+                            <i class="mdi mdi-delete"></i> Supprimer
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Informations</h5>
+                </div>
+                <div class="card-body">
+                    <p><small class="text-muted">
+                        {% if contact.replied %}
+                            <i class="mdi mdi-check-circle text-success"></i> Répondu
+                        {% else %}
+                            <i class="mdi mdi-clock text-warning"></i> En attente de réponse
+                        {% endif %}
+                    </small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function replyToMessage() {
+    window.open(`mailto:${{'{{contact.email}}'}}?subject=Re: ${{'{{contact.subject}}'}}`, '_blank');
+}
+
+function markAsRead() {
+    alert('Message marqué comme lu!');
+    location.reload();
+}
+
+function forwardMessage() {
+    const forwardTo = prompt('Transférer à (email):');
+    if (forwardTo) {
+        alert(`Message transféré à ${forwardTo}!`);
+    }
+}
+
+function deleteMessage() {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce message?')) {
+        window.location.href = "{% url 'custom_admin:contact_delete' contact.id %}";
+    }
+}
+</script>
+{% endblock %}
