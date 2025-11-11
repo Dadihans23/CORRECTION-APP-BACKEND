@@ -1,0 +1,42 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Nouvel Abonnement{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title mb-4">
+        <h3>Créer un abonnement</h3>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label>Numéro de téléphone</label>
+                            <input type="text" name="phone_number" class="form-control" placeholder="+225..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Pack</label>
+                            <select name="pack" class="form-select" required>
+                                {% for pack in packs %}
+                                <option value="{{ pack.id }}">{{ pack.name }} - {{ pack.price }} CFA</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" name="is_active" class="form-check-input" checked>
+                            <label class="form-check-label">Activer immédiatement</label>
+                        </div>
+                        <button type="submit" class="btn btn-success">Créer</button>
+                        <a href="{% url 'custom_admin:subscriptions' %}" class="btn btn-secondary">Annuler</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,233 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light" data-layout="vertical">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Esacode Admin Dashboard">
+    <meta name="author" content="Esacode">
+
+    <title>{% block title %}Esacode Admin{% endblock %}</title>
+
+    <link rel="shortcut icon" href="{% static 'custom_admin/images/favicon.ico' %}">
+
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="{% static 'custom_admin/css/plugins/simplebar.min.css' %}">
+    <link href="{% static 'custom_admin/css/icons.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'custom_admin/js/plugins/uniform/css/default.css' %}" rel="stylesheet">
+    <link href="{% static 'custom_admin/js/plugins/switchery/switchery.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{% static 'custom_admin/css/style.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'custom_admin/css/esacode-theme.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <nav class="navbar navbar-expand-lg navbar-default border bg-body-tertiary py-0">
+            <div class="container-fluid">
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <div class="navbar-header d-lg-none">
+                        <div class="logo-sm">
+                            <a href="javascript:void(0)" id="sidebar-toggle-button"><i class="fa fa-bars"></i></a>
+                        </div>
+                    </div>
+                    <div class="d-flex">
+                        <ul class="nav navbar-nav d-none d-lg-flex mb-2 mb-lg-0">
+                            <li><a href="javascript:void(0)" id="collapsed-sidebar-toggle-button"><i class="mdi mdi-menu"></i></a></li>
+                            <li><a href="javascript:void(0)" id="toggle-fullscreen"><i class="mdi mdi-fullscreen"></i></a></li>
+                        </ul>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="dropdown ms-1 user-dropdown header-item">
+                            <a class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle border-0 dropdown-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                                <img src="{% static 'custom_admin/images/avatar/avatar-1.png' %}" alt="{{ user.username }}" class="rounded-circle user-avatar" style="width: 40px; height: 40px; object-fit: cover; border: 2px solid var(--esacode-primary);">
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% comment %} <li><a href="#">Profil</a></li> {% endcomment %}
+                                
+                                <!-- Menu contextuel basé sur le mode actuel -->
+                                {% block user_dropdown_menu %}{% endblock %}
+                                
+                                <li role="separator" class="divider"></li>
+                                <li><a href="">Se déconnecter</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Page Sidebar -->
+    <div class="page-sidebar">
+        <a class='logo-box' href='{% block logo_url %}#{% endblock %}'>
+            <span class="d-flex align-items-center">
+                <img src="{% static 'assets/images/esacode-logo.png' %}" alt="Esacode" style="height: 32px; width: auto; margin-right: 8px;">
+                <span>{% block logo_text %}Admin{% endblock %}</span>
+            </span>
+            <i class="mdi mdi-close" id="sidebar-toggle-button-close"></i>
+        </a>
+        <div class="page-sidebar-inner">
+            <div class="page-sidebar-menu simple-bar" data-current-page="dashboard" data-simplebar="">
+                <ul class="accordion-menu">
+                    {% block sidebar_menu %}{% endblock %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Content -->
+    <div class="page-content">
+        <div class="page-inner">
+            {% block content %}{% endblock %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="page-footer">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <p class="mb-0">&copy; <script>document.write(new Date().getFullYear())</script> Esacode - <a href="" style="color: var(--esacode-primary); text-decoration: none;">Mentions légales</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="{% static 'custom_admin/js/plugins/jquery.min.js' %}"></script>
+    <script src="{% static 'custom_admin/js/plugins/uniform/js/jquery.uniform.standalone.js' %}"></script>
+    <script src="{% static 'custom_admin/js/plugins/switchery/switchery.min.js' %}"></script>
+    <script src="{% static 'custom_admin/js/plugins/simplebar.min.js' %}"></script>
+    <script src="{% static 'custom_admin/js/plugins/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'custom_admin/js/custom.js' %}"></script>
+    <script src="{% static 'custom_admin/js/esacode-admin.js' %}"></script>
+    
+    {% block custom_js %}{% endblock %}
+    {% block extra_js %}{% endblock %}
+
+    <!-- Global Modals -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 bg-light">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i class="mdi mdi-information text-primary me-2"></i>
+                        <span>Détails</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center py-4" id="detailsLoader">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="mdi mdi-close me-1"></i> Fermer
+                    </button>
+                    <button type="button" class="btn btn-primary" id="detailsActionBtn" style="display: none;">
+                        <i class="mdi mdi-pencil me-1"></i> Modifier
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 bg-primary text-white">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i class="mdi mdi-pencil me-2"></i>
+                        <span>Modifier</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center py-4" id="editLoader">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="mdi mdi-close me-1"></i> Annuler
+                    </button>
+                    <button type="button" class="btn btn-primary" id="editSaveBtn">
+                        <i class="mdi mdi-content-save me-1"></i> Sauvegarder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 bg-danger text-white">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i class="mdi mdi-alert-circle me-2"></i>
+                        <span>Confirmer la suppression</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="mdi mdi-delete-variant text-danger" style="font-size: 4rem;"></i>
+                    </div>
+                    <h6 class="mb-3">Êtes-vous sûr de vouloir supprimer cet élément ?</h6>
+                    <p class="text-muted mb-0" id="deleteWarningText">Cette action est irréversible et ne peut pas être annulée.</p>
+                </div>
+                <div class="modal-footer border-0 bg-light justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">
+                        <i class="mdi mdi-close me-1"></i> Annuler
+                    </button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                        <i class="mdi mdi-delete me-1"></i> Supprimer définitivement
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-body text-center py-5">
+                    <div class="mb-3">
+                        <i class="mdi mdi-check-circle text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h5 class="mb-3">Opération réussie !</h5>
+                    <p class="text-muted mb-0" id="successMessage">L'action a été effectuée avec succès.</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                        <i class="mdi mdi-check me-1"></i> OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-body text-center py-5">
+                    <div class="mb-3">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                    <h6 class="mb-0" id="loadingMessage">Traitement en cours...</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

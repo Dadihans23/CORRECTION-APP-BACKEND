@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from .models import ExerciseProcessing
 from rest_framework import serializers
 from .models import CorrectionHistory , ChatMessage , ChatSession
 # backend/serializers.py
@@ -22,10 +21,6 @@ class SolutionSerializer(serializers.Serializer):
     
     
 
-class ExerciseProcessingSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ExerciseProcessing
-        fields = ['id', 'user', 'image', 'extracted_text', 'solution', 'context', 'created_at']
         
 
 class CorrectionHistorySerializer(serializers.ModelSerializer):

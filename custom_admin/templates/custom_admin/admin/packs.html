@@ -1,0 +1,182 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Packs - Corrige Moi Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h3 class="fw-bold mb-1">Gestion des Packs</h3>
+                        <p class="text-muted mb-0">Tous les abonnements disponibles</p>
+                    </div>
+                    <a href="{% url 'custom_admin:pack_create' %}" class="btn btn-primary">
+                        <i class="mdi mdi-plus"></i> Nouveau Pack
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Pack</th>
+                                    <th>Prix</th>
+                                    <th>Quotas</th>
+                                    <th>Durée</th>
+                                    <th>Abonnés</th>
+                                    <th>Revenus</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pack in page_obj %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                {% if pack.is_best_plan %}
+                                                <span class="badge bg-warning text-dark">★</span>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <strong>{{ pack.name }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><strong>{{ pack.price }} CFA</strong></td>
+                                    <td>
+                                        <small>
+                                            <i class="mdi mdi-image"></i> {{ pack.image_corrections_limit|default:"∞" }}<br>
+                                            <i class="mdi mdi-chat"></i> {{ pack.chat_questions_limit|default:"∞" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if pack.duration == 0 %}
+                                        <span class="badge bg-info">Illimité</span>
+                                        {% else %}
+                                        {{ pack.duration }} jours
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ pack.subscribers_count }}</td>
+                                   <td>
+                                        <strong>{{ pack.revenue|default:0 }} CFA</strong>
+                                    </td>
+                                    
+                                    <td>
+                                        {% if pack.is_active %}
+                                        <span class="badge bg-success">Actif</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactif</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'custom_admin:pack_detail' pack.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="mdi mdi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'custom_admin:pack_edit' pack.id %}" class="btn btn-sm btn-outline-info">
+                                                <i class="mdi mdi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePack({{ pack.id }})">
+                                                <i class="mdi mdi-delete"></i>
+                                            </button>
+                                            
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">Aucun pack créé</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <small class="text-muted">
+                            {{ page_obj.start_index }} - {{ page_obj.end_index }} sur {{ page_obj.paginator.count }}
+                        </small>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+                                {% endif %}
+                                <li class="page-item active"><a class="page-link">{{ page_obj.number }}</a></li>
+                                {% if page_obj.has_next %}
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).on('submit', '.delete-pack', function(e) {
+    e.preventDefault();
+    if (confirm('Supprimer ce pack ? Tous les abonnements seront perdus.')) {
+        $.post(this.action, $(this).serialize(), function() {
+            showToast('Pack supprimé !', 'success');
+            setTimeout(() => location.reload(), 1000);
+        });
+    }
+});
+
+
+function deletePack(packId) {
+    if (!confirm('Supprimer ce pack ? Tous les abonnements actifs seront résiliés.')) {
+        return;
+    }
+
+    fetch("{% url 'custom_admin:pack_delete' 0 %}".replace('0', packId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+
+             if (window.CorrigeMoiAdmin && typeof CorrigeMoiAdmin.showToast === 'function') {
+                CorrigeMoiAdmin.showToast(data.message, 'success');
+            } else {
+                alert(data.message);
+            }
+
+            // Redirection après 1.2s
+            setTimeout(() => {
+                window.location.href = "{% url 'custom_admin:packs' %}";
+            }, 1000);
+        } else {
+            showToast('Erreur : ' + (data.message || 'Impossible de supprimer'), 'error');
+        }
+    })
+    .catch(() => {
+        showToast('Erreur réseau', 'error');
+    });
+}
+</script>
+{% endblock %}

@@ -778,6 +778,16 @@ class ChatMessageCreateView(generics.CreateAPIView):
             # Déduit quota
             subscription.chat_questions_remaining -= 1
             subscription.save()
+            
+            UsageLog.objects.create(
+                subscription=subscription,
+                action='CHAT_QUESTION',
+                metadata={
+                    'session_id': str(session.id),
+                    'message_length': len(user_message),
+                    'response_time_ms': round(response_time, 2)
+                }
+            )
 
             # TITRE PRO PAR GEMINI
             if session.messages.filter(role='user').count() == 1:
@@ -1046,6 +1056,17 @@ Règles de style Markdown :
          # Déduit quota
         subscription.image_corrections_remaining -= 1
         subscription.save()
+        
+        UsageLog.objects.create(
+            subscription=subscription,
+            action='IMAGE_CORRECTION',
+            metadata={
+                'domaine': domaine,
+                'niveau': niveau,
+                'type_exercice': type_ex,
+                'correction_id': correction.id
+            }
+        )
 
         return Response({
             'success': True,

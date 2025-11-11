@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/auth/', include('authentification.urls')),
     path('api/treatment/', include('treatment.urls')),
     path('api/subscription/', include('subscriptions.urls')),
+    path('custom-admin/', include('custom_admin.urls')),
 
 
 ]

@@ -1,0 +1,92 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}{{ pack.name }} - Corrige Moi Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="fw-bold">{{ pack.name }}</h3>
+                        <p class="text-muted">Détail complet du pack</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'custom_admin:pack_edit' pack.id %}" class="btn btn-primary">
+                            <i class="mdi mdi-pencil"></i> Modifier
+                        </a>
+                        <a href="{% url 'custom_admin:packs' %}" class="btn btn-outline-secondary">
+                            <i class="mdi mdi-arrow-left"></i> Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="mdi mdi-package-variant text-white" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h4>{{ pack.name }}</h4>
+                    <h3 class="text-primary">{{ pack.price }} CFA</h3>
+                    {% if pack.is_best_plan %}
+                    <span class="badge bg-warning text-dark">Meilleur choix</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-body">
+                    <h6>Statistiques</h6>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5 class="text-primary">{{ subscribers }}</h5>
+                            <small class="text-muted">Abonnés</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-success">{{ total_revenue }} CFA</h5>
+                            <small class="text-muted">Revenus</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6>Détails</h6>
+                    <table class="table table-borderless">
+                        <tr><td><strong>Quotas</strong></td><td>{{ pack.image_corrections_limit|default:"∞" }} photos • {{ pack.chat_questions_limit|default:"∞" }} questions</td></tr>
+                        <tr><td><strong>Durée</strong></td><td>{% if pack.duration == 0 %}Illimité{% else %}{{ pack.duration }} jours{% endif %}</td></tr>
+                        <tr><td><strong>Statut</strong></td><td>{% if pack.is_active %}<span class="text-success">Actif</span>{% else %}<span class="text-danger">Inactif</span>{% endif %}</td></tr>
+                    </table>
+                    <p><strong>Description :</strong> {{ pack.description }}</p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-body">
+                    <h6>Derniers abonnés</h6>
+                    <ul class="list-group list-group-flush">
+                        {% for sub in recent_subs %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ sub.user.get_full_name|default:sub.user.phone_number }}</span>
+                            <small class="text-muted">{{ sub.created_at|date:"d/m/Y" }}</small>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-center text-muted">Aucun abonnement</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

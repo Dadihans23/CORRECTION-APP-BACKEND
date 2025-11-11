@@ -38,8 +38,8 @@ ALLOWED_HOSTS = [
     '10.245.8.223',
     '172.20.10.2',
     '10.245.8.222',
-    '.onrender.com'
-    
+    '.onrender.com',
+    '10.244.164.222'    
 ]
 
 
@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     'treatment',
     'subscriptions',
     'corsheaders',
+    'custom_admin',  
 ]
 
 MIDDLEWARE = [
@@ -139,6 +140,8 @@ TEMPLATES = [
         },
     },
 ]
+
+
 
 WSGI_APPLICATION = 'backend_project.wsgi.application'
 
@@ -179,6 +182,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 
 

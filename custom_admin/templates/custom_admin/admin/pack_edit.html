@@ -1,0 +1,216 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Modifier {{ pack.name }} - Corrige Moi Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h3 class="fw-bold mb-1">Modifier le pack</h3>
+                        <p class="text-muted mb-0">"{{ pack.name }}"</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" form="packForm" class="btn btn-primary">
+                            <i class="mdi mdi-content-save"></i> Sauvegarder
+                        </button>
+                        <a href="{% url 'custom_admin:pack_detail' pack.id %}" class="btn btn-outline-info">
+                            <i class="mdi mdi-eye"></i> Voir
+                        </a>
+                        <a href="{% url 'custom_admin:packs' %}" class="btn btn-outline-secondary">
+                            <i class="mdi mdi-arrow-left"></i> Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="post" id="packForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="features" id="featuresInput" value='{{ pack.features|safe }}'>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">Nom du pack *</label>
+                                <input type="text" class="form-control" name="name" value="{{ pack.name }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">Prix (CFA) *</label>
+                                <input type="number" class="form-control" name="price" value="{{ pack.price }}" min="100" step="100" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">Corrections photo (0 = illimité)</label>
+                                <input type="number" class="form-control" name="image_corrections_limit" value="{{ pack.image_corrections_limit }}" min="0" placeholder="0 pour illimité">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">Questions chat (0 = illimité)</label>
+                                <input type="number" class="form-control" name="chat_questions_limit" value="{{ pack.chat_questions_limit }}" min="0" placeholder="0 pour illimité">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">Durée</label>
+                                <select class="form-select" name="duration">
+                                    <option value="30" {% if pack.duration == 30 %}selected{% endif %}>30 jours</option>
+                                    <option value="90" {% if pack.duration == 90 %}selected{% endif %}>90 jours</option>
+                                    <option value="365" {% if pack.duration == 365 %}selected{% endif %}>1 an</option>
+                                    <option value="0" {% if pack.duration == 0 %}selected{% endif %}>Illimité (à vie)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-600">Statut</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="is_active" id="isActive" {% if pack.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="isActive">Pack actif</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <label class="form-label fw-600">Description *</label>
+                            <textarea class="form-control" name="description" rows="4" required>{{ pack.description }}</textarea>
+                        </div>
+
+                        <div class="mt-4">
+                            <label class="form-label fw-600">Fonctionnalités incluses</label>
+                            <div class="row g-3">
+                                {% for key, label in features_list.items %}
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input feature-cb" type="checkbox" value="{{ key }}"
+                                               id="feat{{ forloop.counter }}" {% if key in pack.features %}checked{% endif %}>
+                                        <label class="form-check-label" for="feat{{ forloop.counter }}">{{ label }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_best_plan" id="isBestPlan" {% if pack.is_best_plan %}checked{% endif %}>
+                                <label class="form-check-label" for="isBestPlan">
+                                    Marquer comme "Meilleur plan"
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIVE PREVIEW -->
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <h6 class="mb-3">Aperçu en temps réel</h6>
+                    <div class="pack-preview bg-white border rounded p-4 shadow-sm">
+                        <div class="text-center">
+                            <h4 id="previewName" class="mb-2">{{ pack.name }}</h4>
+                            <div class="price-display mb-3">
+                                <span class="h3 text-primary" id="previewPrice">{{ pack.price }}</span>
+                                <span class="text-muted"> CFA</span>
+                                <span class="text-muted small d-block" id="previewDuration">
+                                    {% if pack.duration == 0 %}À vie{% else %}/ {{ pack.duration }} jours{% endif %}
+                                </span>
+                            </div>
+
+                            <div id="previewBestPlan" class="badge bg-warning text-dark mb-3" style="display: none;">Meilleur choix</div>
+
+                            <div class="text-start mt-4">
+                                <div id="previewFeatures"></div>
+                                <p class="mb-1"><i class="mdi mdi-camera text-info"></i> <span id="previewImages">{{ pack.image_corrections_limit|default:"Illimité" }}</span> photos</p>
+                                <p class="mb-1"><i class="mdi mdi-chat text-primary"></i> <span id="previewChat">{{ pack.chat_questions_limit|default:"Illimité" }}</span> questions</p>
+                            </div>
+
+                            <button class="btn btn-primary w-100 mt-4" disabled>
+                                Choisir ce pack
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Liste des fonctionnalités (évite les répétitions)
+const featuresList = {
+    "correction_photo": "Corrections photo",
+    "correction_manuscrite": "Écriture manuscrite",
+    "chat_illimite": "Chat illimité",
+    "explications_video": "Explications vidéo",
+    "priorite_support": "Support prioritaire",
+    "solutions_pdf": "PDF téléchargeables"
+};
+
+$(document).ready(function() {
+    function updatePreview() {
+        $('#previewName').text($('input[name="name"]').val() || 'Nom du pack');
+        $('#previewPrice').text($('input[name="price"]').val() || '0');
+
+        const images = $('input[name="image_corrections_limit"]').val();
+        $('#previewImages').text(images === '0' || !images ? 'Illimité' : images);
+
+        const chat = $('input[name="chat_questions_limit"]').val();
+        $('#previewChat').text(chat === '0' || !chat ? 'Illimité' : chat);
+
+        const duration = $('select[name="duration"]').val();
+        $('#previewDuration').text(duration === '0' ? 'À vie' : `/ ${duration} jours`);
+
+        // Meilleur plan
+        $('#previewBestPlan').toggle($('input[name="is_best_plan"]').is(':checked'));
+
+        // Features
+        const features = [];
+        $('.feature-cb:checked').each(function() {
+            const key = $(this).val();
+            features.push(`<p class="mb-1"><i class="mdi mdi-check text-success"></i> ${featuresList[key]}</p>`);
+        });
+        $('#previewFeatures').html(features.length ? features.join('') : '<p class="text-muted small">Aucune fonctionnalité</p>');
+    }
+
+    // Écouteurs
+    $('input, textarea, select').on('input change', updatePreview);
+    $('.feature-cb').on('change', updatePreview);
+
+    // Soumission
+    $('#packForm').on('submit', function(e) {
+        const features = [];
+        $('.feature-cb:checked').each(function() {
+            features.push($(this).val());
+        });
+        $('#featuresInput').val(JSON.stringify(features));
+
+        if (!$('input[name="name"]').val().trim() || !$('input[name="price"]').val()) {
+            e.preventDefault();
+            alert('Veuillez remplir le nom et le prix');
+        }
+    });
+
+    // Init
+    updatePreview();
+});
+</script>
+
+<style>
+.fw-600 { font-weight: 600; }
+.pack-preview { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+.form-check-input:checked { background-color: #02A195; border-color: #02A195; }
+</style>
+{% endblock %}

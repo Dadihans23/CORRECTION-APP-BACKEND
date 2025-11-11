@@ -1,0 +1,349 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Analytics Revenus - Esacode Admin{% endblock %}
+
+{% block extra_css %}
+<link type="text/css" href="{% static 'custom_admin/css/plugins/apexcharts.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<!-- Page Heading -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="breadcrumb-header fw-bold mb-2">📈 Analytics de Revenus</h2>
+                        <p class="text-muted mb-0">
+                            Analyse approfondie du {{ revenue.start_date }} au {{ revenue.end_date }}
+                            <span class="badge bg-primary ms-2">{{ revenue.period|upper }}</span>
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="mdi mdi-calendar"></i> Période
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item {% if revenue.period == '7d' %}active{% endif %}" href="?period=7d">7 derniers jours</a></li>
+                                <li><a class="dropdown-item {% if revenue.period == '30d' %}active{% endif %}" href="?period=30d">30 derniers jours</a></li>
+                                <li><a class="dropdown-item {% if revenue.period == '3m' %}active{% endif %}" href="?period=3m">3 derniers mois</a></li>
+                                <li><a class="dropdown-item {% if revenue.period == '1y' %}active{% endif %}" href="?period=1y">Année en cours</a></li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-outline-success" onclick="generateForecast()">
+                            <i class="mdi mdi-crystal-ball"></i> Prévisions
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue Overview -->
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mt-0 mb-1 fw-bold text-success">€{{ revenue.yearly_revenue.2024|floatformat:2 }}</h4>
+                            <p class="text-muted mb-0">Revenus 2024</p>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <i class="mdi mdi-trending-up text-success" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mt-0 mb-1 fw-bold text-primary">€{{ revenue.revenue_forecast.next_month|floatformat:2 }}</h4>
+                            <p class="text-muted mb-0">Prévision Mois</p>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <i class="mdi mdi-crystal-ball text-primary" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mt-0 mb-1 fw-bold text-info">€{{ revenue.refunds_data.total_refunds|floatformat:2 }}</h4>
+                            <p class="text-muted mb-0">Remboursements</p>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            <i class="mdi mdi-cash-refund text-info" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mt-0 mb-1 fw-bold text-warning">{{ revenue.revenue_forecast.confidence }}%</h4>
+                            <p class="text-muted mb-0">Confiance Prévision</p>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded">
+                            <i class="mdi mdi-chart-timeline text-warning" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <!-- Revenue Trend Chart -->
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="mdi mdi-chart-areaspline me-2"></i>
+                        Tendance des Revenus ({{ revenue.period|upper }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="revenueTrendChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue by Pack -->
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="mdi mdi-package-variant me-2"></i>
+                        Revenus par Pack
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="revenueByPackChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Analytics -->
+    <div class="row">
+        <!-- Yearly Comparison -->
+        <div class="col-xl-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="mdi mdi-calendar-multiple me-2"></i>
+                        Comparaison Annuelle
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="yearly-comparison">
+                        {% for year, amount in revenue.yearly_revenue.items %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
+                            <div>
+                                <h6 class="mb-1">{{ year }}</h6>
+                                <small class="text-muted">Revenus annuels</small>
+                            </div>
+                            <div class="text-end">
+                                <h5 class="mb-0 text-success">€{{ amount|floatformat:2 }}</h5>
+                                {% if forloop.first and revenue.yearly_revenue.2023 > 0 %}
+                                    <small class="text-success">+{{ amount|floatformat:1 }}% vs 2023</small>
+                                {% elif year == '2023' and revenue.yearly_revenue.2022 > 0 %}
+                                    <small class="text-success">+{{ amount|floatformat:1 }}% vs 2022</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refunds Analysis -->
+        <div class="col-xl-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="mdi mdi-cash-refund me-2"></i>
+                        Analyse des Remboursements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="refund-stats mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Taux de remboursement:</span>
+                            <span class="badge bg-warning">{{ revenue.refunds_data.refund_rate }}%</span>
+                        </div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar bg-warning" style="width: {{ revenue.refunds_data.refund_rate }}%"></div>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Raisons des Remboursements</h6>
+                    <div class="refund-reasons">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Problème technique</span>
+                            <span class="badge bg-danger">{{ revenue.refunds_data.refund_reasons.technical_issue }}%</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Non satisfait</span>
+                            <span class="badge bg-warning">{{ revenue.refunds_data.refund_reasons.not_satisfied }}%</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Erreur facturation</span>
+                            <span class="badge bg-info">{{ revenue.refunds_data.refund_reasons.billing_error }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-gradient-primary text-white border-0">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="mdi mdi-crystal-ball me-2"></i>
+                        Prévisions de Revenus
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="forecast-item text-center p-4 bg-light rounded">
+                                <i class="mdi mdi-calendar-clock text-primary" style="font-size: 2.5rem;"></i>
+                                <h4 class="mt-3 mb-1 text-primary">€{{ revenue.revenue_forecast.next_month|floatformat:2 }}</h4>
+                                <p class="mb-0 text-muted">Mois Prochain</p>
+                                <small class="text-success">Confiance: {{ revenue.revenue_forecast.confidence }}%</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="forecast-item text-center p-4 bg-light rounded">
+                                <i class="mdi mdi-calendar-range text-info" style="font-size: 2.5rem;"></i>
+                                <h4 class="mt-3 mb-1 text-info">€{{ revenue.revenue_forecast.next_quarter|floatformat:2 }}</h4>
+                                <p class="mb-0 text-muted">Prochain Trimestre</p>
+                                <small class="text-success">Basé sur tendance actuelle</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="forecast-item text-center p-4 bg-light rounded">
+                                <i class="mdi mdi-trending-up text-success" style="font-size: 2.5rem;"></i>
+                                <h4 class="mt-3 mb-1 text-success">+{{ revenue.revenue_forecast.next_month|floatformat:1 }}%</h4>
+                                <p class="mb-0 text-muted">Croissance Prévue</p>
+                                <small class="text-success">Vs mois précédent</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateForecast() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="mdi mdi-loading mdi-spin"></i> Génération...';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        showToast('Prévisions mises à jour avec succès!', 'success');
+    }, 2000);
+}
+
+// ApexCharts
+document.addEventListener('DOMContentLoaded', function() {
+    // Revenue Trend Chart
+    const trendData = {{ revenue.daily_revenue_trend|safe }};
+    const revenueTrendOptions = {
+        series: [{
+            name: 'Revenus Quotidiens (€)',
+            data: trendData.map(item => item.revenue)
+        }],
+        chart: {
+            type: 'area',
+            height: 400,
+            toolbar: { show: true }
+        },
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 2 },
+        colors: ['#28a745'],
+        xaxis: {
+            categories: trendData.map(item => new Date(item.date).toLocaleDateString('fr-FR', {day: '2-digit', month: 'short'}))
+        },
+        yaxis: {
+            labels: { formatter: val => '€' + val.toFixed(0) }
+        },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.7,
+                opacityTo: 0.3,
+                stops: [0, 90, 100]
+            }
+        },
+        tooltip: {
+            x: { format: 'dd/MM' },
+            y: { formatter: val => '€' + val.toFixed(2) }
+        }
+    };
+    new ApexCharts(document.querySelector("#revenueTrendChart"), revenueTrendOptions).render();
+
+    // Revenue by Pack Chart
+    const packData = {{ revenue.revenue_by_pack|safe }};
+    const revenueByPackOptions = {
+        series: packData.map(pack => pack.percentage),
+        chart: { type: 'donut', height: 400 },
+        labels: packData.map(pack => pack.pack),
+        colors: ['#007bff', '#28a745', '#ffc107', '#6c757d', '#dc3545'],
+        legend: { position: 'bottom' },
+        dataLabels: {
+            enabled: true,
+            formatter: val => val.toFixed(1) + "%"
+        },
+        responsive: [{ breakpoint: 480, options: { chart: { width: 200 }, legend: { position: 'bottom' } } }]
+    };
+    new ApexCharts(document.querySelector("#revenueByPackChart"), revenueByPackOptions).render();
+});
+
+function showToast(message, type = 'info') {
+    const toast = $(`
+        <div class="toast align-items-center text-white bg-${type == 'success' ? 'success' : 'primary'} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `);
+    toast.toast({ delay: 3000 });
+    $('.toast-container').append(toast);
+    toast.toast('show');
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'custom_admin/js/plugins/apexcharts.min.js' %}"></script>
+{% endblock %}

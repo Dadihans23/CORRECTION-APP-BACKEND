@@ -1,0 +1,283 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Tableau de bord - Corrige Moi Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'custom_admin/css/plugins/apexcharts.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- FILTRE DATE -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
+                <div>
+                    <label class="form-label small text-muted mb-1">Du</label>
+                    <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <label class="form-label small text-muted mb-1">Au</label>
+                    <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="mdi mdi-filter"></i> Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- En-tête -->
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h2 class="fw-bold mb-1" style="color: #1e293b;">Tableau de bord</h2>
+                        <p class="text-muted mb-0">Vue d'ensemble de Corrige Moi</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary" onclick="CorrigeMoiAdmin.refreshStats()" title="Actualiser">
+                            <i class="mdi mdi-refresh"></i>
+                        </button>
+                        <button class="btn btn-success" onclick="CorrigeMoiAdmin.exportAll()" title="ZIP complet">
+                            <i class="mdi mdi-archive"></i> ZIP
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3">
+        <!-- Utilisateurs -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ total_users }}</h4>
+                        <p class="text-muted mb-0 small">Utilisateurs</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="mdi mdi-account-multiple fs-2 text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Abonnements actifs -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ active_subscriptions }}</h4>
+                        <p class="text-muted mb-0 small">Abonnements actifs</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="mdi mdi-credit-card fs-2 text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Corrections photo -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ total_image_corrections }}</h4>
+                        <p class="text-muted mb-0 small">Corrections photo</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="mdi mdi-image-edit fs-2 text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions chat -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ total_chat_questions }}</h4>
+                        <p class="text-muted mb-0 small">Questions chat</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="mdi mdi-chat fs-2 text-purple"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deuxième ligne KPI -->
+    <div class="row g-3 mt-2">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ total_actions }}</h4>
+                        <p class="text-muted mb-0 small">Actions totales</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="mdi mdi-check-circle fs-2 text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ revenue_period }} CFA</h4>
+                        <p class="text-muted mb-0 small">Revenus (période)</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="mdi mdi-trending-up fs-2 text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ total_revenue|floatformat:0 }} CFA</h4>
+                        <p class="text-muted mb-0 small">Revenus totaux</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="mdi mdi-currency-usd fs-2 text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-fill">
+                        <h4 class="mb-0 fw-bold">{{ total_packs }}</h4>
+                        <p class="text-muted mb-0 small">Packs disponibles</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="mdi mdi-package-variant fs-2 text-secondary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique + Top Packs -->
+    <div class="row mt-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Activité sur la période</h5>
+                </div>
+                <div class="card-body">
+                    <div id="activityChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Top Packs (période)</h5>
+                </div>
+                <div class="card-body">
+                    {% for pack in top_packs %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-muted">{{ pack.pack__name }}</span>
+                        <strong>{{ pack.revenue|floatformat:0 }} CFA</strong>
+                    </div>
+                    <div class="progress mb-2" style="height: 4px;">
+                        <div class="progress-bar bg-success" style="width: {% widthratio pack.revenue revenue_period 100 %}%"></div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small">Aucune vente</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="mb-3">Actions rapides</h5>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{% url 'custom_admin:users' %}" class="btn btn-outline-primary w-100">
+                                <i class="mdi mdi-account-multiple"></i> Utilisateurs
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'custom_admin:packs' %}" class="btn btn-outline-success w-100">
+                                <i class="mdi mdi-package-variant"></i> Packs
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'custom_admin:analytics' %}" class="btn btn-outline-info w-100">
+                                <i class="mdi mdi-chart-line"></i> Analytics
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'custom_admin:reports' %}" class="btn btn-outline-warning w-100">
+                                <i class="mdi mdi-file-document"></i> Rapports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'custom_admin/js/plugins/apexcharts.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dates = [{% for d in date_range %}'{{ d.date }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const images = [{% for d in date_range %}{{ d.images }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const chat = [{% for d in date_range %}{{ d.chat }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    const options = {
+        series: [
+            { name: 'Corrections photo', data: images },
+            { name: 'Questions chat', data: chat }
+        ],
+        chart: { type: 'area', height: 300, toolbar: { show: false } },
+        colors: ['#0d9488', '#3b82f6'],
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 2 },
+        xaxis: { categories: dates, labels: { style: { fontSize: '12px' } } },
+        yaxis: { labels: { formatter: val => Math.round(val) } },
+        tooltip: { x: { format: 'dd MMM' } },
+        fill: { opacity: 0.1 },
+        legend: { position: 'top', horizontalAlign: 'left' }
+    };
+
+    new ApexCharts(document.querySelector("#activityChart"), options).render();
+});
+
+const CorrigeMoiAdmin = {
+    refreshStats() {
+        location.reload();
+    },
+    exportAll() {
+        window.location.href = "{% url 'custom_admin:export_all_reports' %}";
+    }
+};
+</script>
+{% endblock %}

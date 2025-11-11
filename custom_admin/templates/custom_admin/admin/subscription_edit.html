@@ -1,0 +1,201 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Modifier Abonnement #{{ subscription.id }} - Corrige Moi Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="page-title mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h3 class="fw-bold mb-1">Modifier Abonnement #{{ subscription.id }}</h3>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'custom_admin:dashboard' %}">Admin</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'custom_admin:subscriptions' %}">Abonnements</a></li>
+                        <li class="breadcrumb-item active">Modifier</li>
+                    </ol>
+                </nav>
+            </div>
+            <a href="{% url 'custom_admin:subscriptions' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="mdi mdi-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Formulaire -->
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="mb-4">
+                        <i class="mdi mdi-pencil-outline text-primary"></i> Modifier les quotas & statut
+                    </h5>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                       <!-- Infos utilisateur -->
+<div class="row mb-4 text-dark">
+    <div class="col-md-6">
+        <label class="form-label small text-dark">Utilisateur</label>
+        <div class="d-flex align-items-center p-3 bg-light rounded">
+            <div>
+                <strong class="text-dark">{{ subscription.user.first_name }}</strong><br>
+                <small class="text-dark">+{{ subscription.user.phone_number }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small text-dark">Pack actuel</label>
+        <div class="p-3 bg-info bg-opacity-10 rounded border border-info border-opacity-25">
+            <span class="badge bg-info text-dark fw-bold">{{ subscription.pack.name }}</span>
+            <small class="d-block mt-1 text-dark">
+                {{ subscription.pack.price }} CFA • {{ subscription.pack.duration }} jours
+            </small>
+        </div>
+    </div>
+</div>
+
+                        <!-- Quotas -->
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    <i class="mdi mdi-image-edit"></i> Corrections photo restantes
+                                </label>
+                                <input type="number" name="images" class="form-control form-control-lg text-center fw-bold"
+                                       value="{{ subscription.image_corrections_remaining }}" min="0" required>
+                                <small class="text-muted">Limite pack : {{ subscription.pack.image_corrections_limit|default:"Illimité" }}</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    <i class="mdi mdi-chat-processing"></i> Questions chat restantes
+                                </label>
+                                <input type="number" name="chat" class="form-control form-control-lg text-center fw-bold"
+                                       value="{{ subscription.chat_questions_remaining }}" min="0" required>
+                                <small class="text-muted">Limite pack : {{ subscription.pack.chat_questions_limit|default:"Illimité" }}</small>
+                            </div>
+                        </div>
+
+                        <!-- Statut -->
+                        <div class="mt-4">
+                            <label class="form-label">Statut de l'abonnement</label>
+                            <div class="form-check form-switch form-switch-lg">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="isActiveSwitch"
+                                       {% if subscription.is_active %}checked{% endif %}>
+                                <label class="form-check-label fs-5" for="isActiveSwitch">
+                                    {% if subscription.is_active %}
+                                        <span class="text-success fw-bold">ACTIF</span>
+                                    {% else %}
+                                        <span class="text-danger fw-bold">INACTIF</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Boutons -->
+                        <div class="mt-5 d-flex gap-3">
+                            <button type="submit" class="btn btn-success btn-lg px-5">
+                                <i class="mdi mdi-content-save"></i> Sauvegarder
+                            </button>
+                            <a href="{% url 'custom_admin:subscription_detail' subscription.id %}" class="btn btn-primary btn-lg">
+                                <i class="mdi mdi-eye"></i> Voir détails
+                            </a>
+                            <a href="{% url 'custom_admin:subscriptions' %}" class="btn btn-outline-secondary btn-lg">
+                                <i class="mdi mdi-close"></i> Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+       <!-- Aperçu -->
+<div class="col-xl-4">
+    <div class="card border-0 shadow-sm bg-gradient-primary text-white">
+        <div class="card-body text-center text-dark">
+            <div class="avatar-xl bg-white bg-opacity-20 rounded-circle mx-auto mb-4 d-flex align-items-center justify-content-center">
+                <i class="mdi mdi-shield-check-outline text-dark" style="font-size: 3.5rem;"></i>
+            </div>
+            <h4 class="mb-1 text-dark">{{ subscription.pack.name }}</h4>
+            <p class="mb-3 opacity-90 text-dark">
+                <i class="mdi mdi-account text-dark"></i> {{ subscription.user.get_full_name }}
+            </p>
+
+            <div class="text-start bg-white bg-opacity-10 rounded p-3 mb-3">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-dark">Images</span>
+                    <strong class="text-dark">{{ subscription.image_corrections_remaining }} / {{ subscription.pack.image_corrections_limit|default:"∞" }}</strong>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-dark" style="width: {% widthratio subscription.image_corrections_remaining subscription.pack.image_corrections_limit|default:1 100 %}%"></div>
+                </div>
+            </div>
+
+            <div class="text-start bg-white bg-opacity-10 rounded p-3 mb-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-dark">Chat</span>
+                    <strong class="text-dark">{{ subscription.chat_questions_remaining }} / {{ subscription.pack.chat_questions_limit|default:"∞" }}</strong>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-dark" style="width: {% widthratio subscription.chat_questions_remaining subscription.pack.chat_questions_limit|default:1 100 %}%"></div>
+                </div>
+            </div>
+
+            <div class="p-3 rounded bg-white bg-opacity-20">
+                <small class="d-block opacity-75 text-dark">Créé le</small>
+                <strong class="text-dark">{{ subscription.created_at|date:"d/m/Y à H:i" }}</strong>
+            </div>
+
+            {% if subscription.expires_at %}
+            <div class="mt-3 p-3 rounded bg-white bg-opacity-20">
+                <small class="d-block opacity-75 text-dark">Expire le</small>
+                <strong class="{% if subscription.is_expired %}text-danger{% else %}text-dark{% endif %}">
+                    {{ subscription.expires_at|date:"d/m/Y à H:i" }}
+                </strong>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+}
+.avatar-xl {
+    width: 100px;
+    height: 100px;
+}
+.form-switch-lg .form-check-input {
+    height: 2.5rem;
+    width: 5rem;
+}
+.form-switch-lg .form-check-input:checked {
+    background-color: #10b981;
+    border-color: #10b981;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mise à jour en temps réel du statut
+document.getElementById('isActiveSwitch').addEventListener('change', function() {
+    const label = this.nextElementSibling.querySelector('span');
+    if (this.checked) {
+        label.textContent = 'ACTIF';
+        label.className = 'text-success fw-bold';
+    } else {
+        label.textContent = 'INACTIF';
+        label.className = 'text-danger fw-bold';
+    }
+});
+</script>
+{% endblock %}

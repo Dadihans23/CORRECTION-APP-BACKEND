@@ -1,0 +1,95 @@
+{% extends 'custom_admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Abonnement #{{ subscription.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3>Abonnement #{{ subscription.id }}</h3>
+                <p class="text-muted">Détails de l'abonnement de {{ subscription.user.get_full_name }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'custom_admin:subscription_edit' subscription.id %}" class="btn btn-primary">
+                    <i class="mdi mdi-pencil"></i> Modifier
+                </a>
+                <a href="{% url 'custom_admin:subscriptions' %}" class="btn btn-outline-secondary">
+                    Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5>Informations</h5>
+                    <table class="table table-borderless">
+                        <tr><td><strong>Utilisateur</strong></td><td>{{ subscription.user.get_full_name }} ({{ subscription.user.phone_number }})</td></tr>
+                        <tr><td><strong>Pack</strong></td><td><span class="badge bg-info">{{ subscription.pack.name }}</span></td></tr>
+                        <tr><td><strong>Prix</strong></td><td>{{ subscription.pack.price }} CFA</td></tr>
+                        <tr><td><strong>Statut</strong></td><td>{% if subscription.is_active and not subscription.is_expired %}<span class="badge bg-success">ACTIF</span>{% else %}<span class="badge bg-danger">EXPIRÉ</span>{% endif %}</td></tr>
+                        <tr><td><strong>Créé le</strong></td><td>{{ subscription.created_at|date:"d/m/Y H:i" }}</td></tr>
+                        <tr><td><strong>Expire le</strong></td><td>{% if subscription.expires_at %}{{ subscription.expires_at|date:"d/m/Y H:i" }}{% else %}Jamais{% endif %}</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-body">
+                    <h5>Quotas</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <strong>Corrections photo</strong>
+                            <div class="progress mt-2" style="height: 8px;">
+                                <div class="progress-bar bg-info" style="width: {% widthratio subscription.image_corrections_remaining images_limit 100 %}%"></div>
+                            </div>
+                            <small class="text-muted">{{ subscription.image_corrections_remaining }} / {{ images_limit|default:"Illimité" }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Questions chat</strong>
+                            <div class="progress mt-2" style="height: 8px;">
+                                <div class="progress-bar bg-primary" style="width: {% widthratio subscription.chat_questions_remaining chat_limit 100 %}%"></div>
+                            </div>
+                            <small class="text-muted">{{ subscription.chat_questions_remaining }} / {{ chat_limit|default:"Illimité" }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-body">
+                    <h5>Activité récente</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for log in recent_logs %}
+                        <li class="list-group-item px-0">
+                            <small class="text-muted">{{ log.timestamp|date:"d/m H:i" }}</small><br>
+                            <strong>{{ log.get_action_display }}</strong>
+                        </li>
+                        {% empty %}
+                        <li class="text-muted">Aucune activité</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6>Token API</h6>
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-sm" value="{{ subscription.token }}" readonly>
+                        <button class="btn btn-outline-secondary btn-sm copy-btn" data-copy="{{ subscription.token }}">
+                            <i class="mdi mdi-content-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
