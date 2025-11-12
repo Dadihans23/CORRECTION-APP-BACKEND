@@ -141,6 +141,7 @@ TEMPLATES = [
     },
 ]
 
+whatsapp='+2'
 
 
 WSGI_APPLICATION = 'backend_project.wsgi.application'

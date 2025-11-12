@@ -1,7 +1,7 @@
 {% extends 'custom_admin/base_admin.html' %}
 {% load static %}
 
-{% block title %}Analytics - Esacode Admin{% endblock %}
+{% block title %}Analytics - Corrige Moi Admin{% endblock %}
 
 {% block extra_css %}
 <link type="text/css" href="{% static 'custom_admin/css/plugins/apexcharts.css' %}" rel="stylesheet">
@@ -14,311 +14,195 @@
             <div class="page-title mb-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h2 class="breadcrumb-header fw-bold mb-2">📊 Analytics</h2>
-                        <p class="text-muted mb-0">Analysez les performances de votre plateforme</p>
+                        <h2 class="fw-bold mb-2">Analytics</h2>
+                        <p class="text-muted mb-0">Suivi en temps réel de la plateforme</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <select class="form-select" id="periodSelect" style="width: 150px;">
-                            <option value="7">7 derniers jours</option>
-                            <option value="30">30 derniers jours</option>
-                            <option value="90">90 derniers jours</option>
+                        <select class="form-select" id="periodSelect" style="width: 160px;">
+                            <option value="7" {% if analytics.period == 7 %}selected{% endif %}>7 jours</option>
+                            <option value="30" {% if analytics.period == 30 %}selected{% endif %}>30 jours</option>
+                            <option value="90" {% if analytics.period == 90 %}selected{% endif %}>90 jours</option>
                         </select>
-                        <button class="btn btn-outline-primary" onclick="refreshAnalytics()">
+                        <button class="btn btn-primary" onclick="refreshAnalytics()">
                             <i class="mdi mdi-refresh"></i> Actualiser
                         </button>
-                        <button class="btn btn-outline-success" onclick="exportAnalytics()">
-                            <i class="mdi mdi-download"></i> Export
-                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- KPI Cards DYNAMIQUES -->
-<div class="container-fluid">
-    <div class="row mb-4">
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mt-0 mb-1 fw-bold text-primary">{{ analytics.user_growth.this_month }}</h4>
-                            <p class="text-muted mb-0">Nouveaux utilisateurs</p>
-                            <small class="{% if analytics.user_growth.growth_rate >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                <i class="mdi mdi-arrow-{% if analytics.user_growth.growth_rate >= 0 %}up{% else %}down{% endif %}"></i>
-                                {{ analytics.user_growth.growth_rate }}%
+                            <h4 class="fw-bold text-primary">{{ analytics.user_growth.this_month }}</h4>
+                            <p class="text-muted small">Nouveaux utilisateurs</p>
+                            <small class="text-success">
+                                <i class="mdi mdi-arrow-up"></i> +{{ analytics.user_growth.growth_rate }}%
                             </small>
                         </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded">
-                            <i class="mdi mdi-account-plus text-primary" style="font-size: 1.5rem;"></i>
-                        </div>
+                        <i class="mdi mdi-account-plus text-primary fs-3"></i>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mt-0 mb-1 fw-bold text-success">${{ analytics.kpi.total_revenue|floatformat:2 }}</h4>
-                            <p class="text-muted mb-0">Revenus totaux</p>
-                            <small class="text-success"><i class="mdi mdi-arrow-up"></i> +12.5%</small>
+                            <h4 class="fw-bold text-success">{{ analytics.kpi.total_revenue|floatformat:0 }} CFA</h4>
+                            <p class="text-muted small">Revenus totaux</p>
                         </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded">
-                            <i class="mdi mdi-currency-usd text-success" style="font-size: 1.5rem;"></i>
-                        </div>
+                        <i class="mdi mdi-currency-usd text-success fs-3"></i>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mt-0 mb-1 fw-bold text-info">{{ analytics.kpi.retention_rate }}%</h4>
-                            <p class="text-muted mb-0">Taux de rétention</p>
-                            <small class="text-success"><i class="mdi mdi-arrow-up"></i> +2.1%</small>
+                            <h4 class="fw-bold text-info">{{ analytics.kpi.retention_rate }}%</h4>
+                            <p class="text-muted small">Rétention 30j</p>
                         </div>
-                        <div class="bg-info bg-opacity-10 p-3 rounded">
-                            <i class="mdi mdi-heart text-info" style="font-size: 1.5rem;"></i>
-                        </div>
+                        <i class="mdi mdi-account-check text-info fs-3"></i>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mt-0 mb-1 fw-bold text-warning">{{ analytics.kpi.total_api_calls|floatformat:0 }}</h4>
-                            <p class="text-muted mb-0">Appels API</p>
-                            <small class="text-danger"><i class="mdi mdi-arrow-down"></i> -3.2%</small>
+                            <h4 class="fw-bold text-warning">{{ analytics.live.active_users }}</h4>
+                            <p class="text-muted small">En ligne (5 min)</p>
+                            <span class="badge bg-danger small">LIVE</span>
                         </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded">
-                            <i class="mdi mdi-api text-warning" style="font-size: 1.5rem;"></i>
-                        </div>
+                        <i class="mdi mdi-circle text-danger fs-4 blink"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Charts Row -->
+    <!-- Graphiques -->
     <div class="row mb-4">
-        <div class="col-xl-8">
+        <div class="col-lg-8">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light border-0">
-                    <h5 class="mb-0 d-flex align-items-center">
-                        <i class="mdi mdi-chart-line me-2"></i>
-                        Évolution des revenus (7 jours)
-                    </h5>
+                <div class="card-header bg-white">
+                    <h5>Activité quotidienne</h5>
                 </div>
                 <div class="card-body">
-                    <div id="revenueChart" style="height:350px;"></div>
+                    <div id="activityChart"></div>
                 </div>
             </div>
         </div>
-        
-        <div class="col-xl-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light border-0">
-                    <h5 class="mb-0 d-flex align-items-center">
-                        <i class="mdi mdi-trophy me-2"></i>
-                        Top Packs
-                    </h5>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5>Top Packs</h5>
                 </div>
                 <div class="card-body">
                     {% for pack in analytics.top_packs %}
-                    <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded">
-                        <div>
-                            <h6 class="mb-1">{{ pack.name }}</h6>
-                            <small class="text-muted">{{ pack.sales }} ventes</small>
-                        </div>
-                        <div class="text-end">
-                            <strong class="text-primary">${{ pack.revenue|floatformat:2 }}</strong>
-                        </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small text-muted">{{ pack.name }}</span>
+                        <strong>{{ pack.revenue|floatformat:0 }} CFA</strong>
                     </div>
-                    {% empty %}
-                    <p class="text-muted text-center">Aucune vente récente</p>
+                    <div class="progress mb-3" style="height: 5px;">
+                        <div class="progress-bar bg-success" style="width: {% widthratio pack.revenue analytics.kpi.total_revenue 100 %}%"></div>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Usage Analytics -->
-    <div class="row mb-4">
-        <div class="col-xl-6">
+    <div class="row">
+        <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light border-0">
-                    <h5 class="mb-0 d-flex align-items-center">
-                        <i class="mdi mdi-chart-donut me-2"></i>
-                        Utilisation API par endpoint
-                    </h5>
+                <div class="card-header bg-white">
+                    <h5>Utilisation par type</h5>
                 </div>
                 <div class="card-body">
-                    <div id="apiUsageChart" style="height: 300px;"></div>
+                    <div id="usageChart"></div>
                 </div>
             </div>
         </div>
-        
-        <div class="col-xl-6">
+
+        <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light border-0">
-                    <h5 class="mb-0 d-flex align-items-center">
-                        <i class="mdi mdi-earth me-2"></i>
-                        Utilisateurs par langue
-                    </h5>
+                <div class="card-header bg-white">
+                    <h5>Niveau scolaire</h5>
                 </div>
                 <div class="card-body">
-                    <div id="geoChart" style="height: 300px;"></div>
+                    <div id="levelChart"></div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Real-time Stats -->
-    {% comment %} <div class="row">
-        <div class="col-xl-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light border-0">
-                    <h5 class="mb-0 d-flex align-items-center">
-                        <i class="mdi mdi-pulse me-2"></i>
-                        Statistiques en temps réel
-                        <span class="badge bg-success ms-2">
-                            <i class="mdi mdi-circle" style="font-size: 8px;"></i> Live
-                        </span>
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <h3 class="text-primary live-counter" data-target="{{ analytics.live.active_users }}">0</h3>
-                            <p class="text-muted">Utilisateurs actifs</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h3 class="text-success live-counter" data-target="{{ analytics.live.api_calls }}">0</h3>
-                            <p class="text-muted">Appels API/h</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h3 class="text-warning live-counter" data-target="{{ analytics.live.characters }}">0</h3>
-                            <p class="text-muted">Caractères (K)</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h3 class="text-info live-counter" data-target="{{ analytics.live.subscriptions }}">0</h3>
-                            <p class="text-muted">Nouvelles souscriptions</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> {% endcomment %}
 </div>
-
-<!-- Toast Container -->
-<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'custom_admin/js/plugins/apexcharts.min.js' %}"></script>
 <script>
-$(document).ready(function() {
-    // Revenue Chart DYNAMIQUE
-    const revenueOptions = {
-        series: [{
-            name: 'Revenus',
-            data: {{ analytics.daily_revenue|safe }}
-        }],
-        chart: { type: 'area', height: 350, toolbar: { show: true } },
-        colors: ['#28a745'],
-        fill: {
-            type: 'gradient',
-            gradient: {
-                shadeIntensity: 1,
-                opacityFrom: 0.7,
-                opacityTo: 0.1,
-                colorStops: [{ offset: 0, color: '#28a745', opacity: 0.7 }, { offset: 100, color: '#28a745', opacity: 0.1 }]
-            }
-        },
-        stroke: { curve: 'smooth', width: 3 },
-        xaxis: { categories: {{ analytics.day_labels|safe }} },
-        yaxis: { title: { text: 'Revenus ($)' } },
-        tooltip: { y: { formatter: val => '$' + val.toFixed(2) } }
-    };
-    new ApexCharts(document.querySelector("#revenueChart"), revenueOptions).render();
+document.addEventListener('DOMContentLoaded', function () {
+    const data = {{ analytics|safe }};
 
-    // API Usage Donut Chart DYNAMIQUE - CORRIGÉ
-    const apiOptions = {
-        series: {{ analytics.api_usage_series|safe }},
+    // Graphique principal
+    new ApexCharts(document.querySelector("#activityChart"), {
+        series: [
+            { name: 'Corrections photo', data: data.daily_images },
+            { name: 'Questions chat', data: data.daily_chat },
+            { name: 'Revenus', data: data.daily_revenue }
+        ],
+        chart: { type: 'area', height: 350, toolbar: { show: false } },
+        colors: ['#0d9488', '#3b82f6', '#f59e0b'],
+        stroke: { width: 2, curve: 'smooth' },
+        xaxis: { categories: data.day_labels },
+        yaxis: [{ title: { text: 'Actions' } }, { opposite: true, title: { text: 'Revenus (CFA)' } }],
+        fill: { opacity: 0.1 },
+        legend: { position: 'top' }
+    }).render();
+
+    // Donut usage
+    new ApexCharts(document.querySelector("#usageChart"), {
+        series: data.usage.series,
         chart: { type: 'donut', height: 300 },
-        labels: {{ analytics.api_usage_labels|safe }},
-        colors: ['#28a745', '#007bff', '#ffc107', '#dc3545'],
-        legend: { position: 'bottom' },
-        dataLabels: { enabled: true }
-    };
-    new ApexCharts(document.querySelector("#apiUsageChart"), apiOptions).render();
+        labels: data.usage.labels,
+        colors: ['#10b981', '#3b82f6'],
+        legend: { position: 'bottom' }
+    }).render();
 
-    // Geo Chart DYNAMIQUE
-    const geoOptions = {
-        series: [{ data: {{ analytics.geo_series|safe }} }],
-        chart: { type: 'bar', height: 300, toolbar: { show: false } },
-        colors: ['#007bff'],
-        xaxis: { categories: {{ analytics.geo_countries|safe }} },
-        plotOptions: { bar: { horizontal: true } },
-        dataLabels: { enabled: true }
-    };
-    new ApexCharts(document.querySelector("#geoChart"), geoOptions).render();
-
-    // Live counters
-    $('.live-counter').each(function() {
-        const target = parseInt($(this).data('target'));
-        const element = this;
-        let current = 0;
-        const increment = target / 100;
-        
-        const timer = setInterval(() => {
-            current += increment;
-            if (current >= target) {
-                current = target;
-                clearInterval(timer);
-            }
-            $(element).text(Math.floor(current));
-        }, 20);
-    });
-
-    // Auto-refresh every 30s
-    setInterval(() => location.reload(), 30000);
+    // Niveau scolaire
+    new ApexCharts(document.querySelector("#levelChart"), {
+        series: [{ name: 'Utilisateurs', data: data.levels.series }],
+        chart: { type: 'bar', height: 300 },
+        colors: ['#8b5cf6'],
+        xaxis: { categories: data.levels.labels },
+        plotOptions: { bar: { horizontal: true } }
+    }).render();
 });
 
 function refreshAnalytics() {
-    const period = $('#periodSelect').val();
-    window.location.href = `/admin/analytics/?period=${period}`;
-}
-
-function exportAnalytics() {
-    showToast('Analytics exportés avec succès!', 'success');
-}
-
-function showToast(message, type = 'info') {
-    const toast = $(`
-        <div class="toast align-items-center text-white bg-${type == 'success' ? 'success' : 'primary'} border-0" role="alert">
-            <div class="d-flex">
-                <div class="toast-body">${message}</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    `);
-    toast.toast({ delay: 3000 });
-    $('.toast-container').append(toast);
-    toast.toast('show');
+    const period = document.getElementById('periodSelect').value;
+    window.location.href = `?period=${period}`;
 }
 </script>
+
+<style>
+.blink { animation: blink 1.5s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
 {% endblock %}

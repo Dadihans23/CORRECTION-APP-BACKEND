@@ -64,6 +64,8 @@ from treatment.models import (
     CorrectionHistory,
     ChatSession,
     ChatMessage,
+    SiteSettings
+    
 )
 from subscriptions.models import Pack, Subscription, UsageLog, Transaction
 
@@ -953,76 +955,60 @@ def admin_user_stats(request):
 
 # ===============================================
 # ANALYTICS GÉNÉRAL
-# ===============================================
+# ===============================================# custom_admin/views.py
+
+
+
 @login_required
 def admin_analytics(request):
     if not request.user.is_staff:
         return render(request, '403.html', status=403)
 
     now = timezone.now()
-    seven_days_ago = now - timedelta(days=7)
+    period = int(request.GET.get('period', 7))  # 7, 30 ou 90
+    days_ago = now - timedelta(days=period)
 
-    # === KPI CARDS ===
-    this_month_start = now.replace(day=1)
-    last_month_start = (now.replace(day=1) - timedelta(days=1)).replace(day=1)
-    last_month_end = this_month_start - timedelta(days=1)
+    # === KPI ===
+    this_month = now.replace(day=1)
+    last_month = (this_month - timedelta(days=1)).replace(day=1)
 
-    new_users_this_month = CustomUser.objects.filter(date_joined__gte=this_month_start).count()
-    new_users_last_month = CustomUser.objects.filter(
-        date_joined__range=[last_month_start, last_month_end]
-    ).count()
-    user_growth_rate = round(((new_users_this_month - new_users_last_month) / new_users_last_month * 100), 1) if new_users_last_month > 0 else 0
+    new_users_this_month = CustomUser.objects.filter(date_joined__gte=this_month).count()
+    new_users_last_month = CustomUser.objects.filter(date_joined__gte=last_month, date_joined__lt=this_month).count()
+    user_growth = round(((new_users_this_month - new_users_last_month) / new_users_last_month * 100), 1) if new_users_last_month else 100
 
-    total_revenue = float(Transaction.objects.filter(transaction_type='subscription').aggregate(total=Sum('price_paid'))['total'] or 0)
+    total_revenue = float(Transaction.objects.filter(transaction_type='subscription').aggregate(t=Sum('price_paid'))['t'] or 0)
 
     # Rétention 30j
-    new_30d = CustomUser.objects.filter(date_joined__gte=now - timedelta(days=30)).count()
-    active_30d = ImageCorrection.objects.filter(
-        created_at__gte=now - timedelta(days=30)
-    ).values('user').distinct().count()
-    retention_rate = round(active_30d / new_30d * 100, 1) if new_30d > 0 else 0
+    users_30d_ago = CustomUser.objects.filter(date_joined__gte=now - timedelta(days=30))
+    active_30d = set(ImageCorrection.objects.filter(created_at__gte=now - timedelta(days=30)).values_list('user_id', flat=True))
+    active_30d |= set(ChatMessage.objects.filter(created_at__gte=now - timedelta(days=30), role='user').values_list('session__user_id', flat=True))
+    retention = round(len(active_30d) / users_30d_ago.count() * 100, 1) if users_30d_ago.exists() else 0
 
-    total_actions = ImageCorrection.objects.count() + UsageLog.objects.filter(action='CHAT_QUESTION').count()
+    total_actions = ImageCorrection.objects.count() + ChatMessage.objects.filter(role='user').count()
 
-    # === DONNÉES JOURNALIÈRES (7 jours) ===
-    daily_data = ImageCorrection.objects.filter(
-        created_at__gte=seven_days_ago
-    ).annotate(day=TruncDay('created_at')).values('day').annotate(
-        images=Count('id')
-    ).order_by('day')
-
-    chat_data = UsageLog.objects.filter(
-        action='CHAT_QUESTION',
-        timestamp__gte=seven_days_ago
-    ).annotate(day=TruncDay('timestamp')).values('day').annotate(
-        chat=Count('id')
-    ).order_by('day')
-
+    # === DONNÉES PAR JOUR ===
+    dates = []
     daily_images = []
     daily_chat = []
     daily_revenue = []
     day_labels = []
 
-    for i in range(7):
-        date = seven_days_ago + timedelta(days=i)
-        day_str = date.date()
+    for i in range(period - 1, -1, -1):
+        date = (now - timedelta(days=i)).date()
+        dates.append(date)
+        day_labels.append(date.strftime('%a %d'))
 
-        img = next((d['images'] for d in daily_data if d['day'].date() == day_str), 0)
-        cht = next((d['chat'] for d in chat_data if d['day'].date() == day_str), 0)
+        img_count = ImageCorrection.objects.filter(created_at__date=date).count()
+        chat_count = ChatMessage.objects.filter(role='user', created_at__date=date).count()
+        rev = Transaction.objects.filter(created_at__date=date, transaction_type='subscription').aggregate(r=Sum('price_paid'))['r'] or 0
 
-        rev = Transaction.objects.filter(
-            created_at__date=day_str,
-            transaction_type='subscription'
-        ).aggregate(r=Sum('price_paid'))['r'] or 0
-
-        daily_images.append(img)
-        daily_chat.append(cht)
+        daily_images.append(img_count)
+        daily_chat.append(chat_count)
         daily_revenue.append(float(rev))
-        day_labels.append(date.strftime('%a'))
 
-    # === TOP PACKS (7 jours) ===
+    # === TOP PACKS ===
     top_packs = Transaction.objects.filter(
-        created_at__gte=seven_days_ago,
+        created_at__gte=days_ago,
         transaction_type='subscription'
     ).values('pack__name').annotate(
         sales=Count('id'),
@@ -1035,58 +1021,54 @@ def admin_analytics(request):
     ]
 
     # === UTILISATION PAR TYPE ===
-    action_counts = UsageLog.objects.filter(
-        timestamp__gte=seven_days_ago
-    ).values('action').annotate(count=Count('id'))
+    images_total = ImageCorrection.objects.filter(created_at__gte=days_ago).count()
+    chat_total = ChatMessage.objects.filter(role='user', created_at__gte=days_ago).count()
 
-    action_labels = ['Images', 'Chat']
-    action_series = [
-        ImageCorrection.objects.filter(created_at__gte=seven_days_ago).count(),
-        UsageLog.objects.filter(action='CHAT_QUESTION', timestamp__gte=seven_days_ago).count()
-    ]
+    # === NIVEAU SCOLAIRE ===
+    level_data = ImageCorrection.objects.filter(created_at__gte=days_ago).values('niveau').annotate(c=Count('id')).order_by('-c')[:6]
+    level_labels = [x['niveau'] or 'Non spécifié' for x in level_data]
+    level_values = [x['c'] for x in level_data]
 
-    # === GÉOLOCALISATION (niveau scolaire) ===
-    level_data = ImageCorrection.objects.filter(
-        created_at__gte=seven_days_ago
-    ).values('niveau').annotate(count=Count('id')).order_by('-count')[:5]
-
-    geo_labels = [l['niveau'] for l in level_data] or ['Collège']
-    geo_series = [l['count'] for l in level_data] or [0]
-
-    # === LIVE STATS ===
-    live_active = len(set(
-        ImageCorrection.objects.filter(created_at__gte=now - timedelta(minutes=5)).values_list('user', flat=True)
+    # === LIVE ===
+    live_users = len(set(
+        ImageCorrection.objects.filter(created_at__gte=now - timedelta(minutes=5)).values_list('user_id', flat=True)
     ))
-    live_actions = ImageCorrection.objects.filter(created_at__gte=now - timedelta(hours=1)).count() + \
-                   UsageLog.objects.filter(timestamp__gte=now - timedelta(hours=1)).count()
+    live_actions = ImageCorrection.objects.filter(created_at__gte=now - timedelta(minutes=10)).count() + \
+                   ChatMessage.objects.filter(created_at__gte=now - timedelta(minutes=10), role='user').count()
 
-    analytics_data = {
-        'daily_images': daily_images,
-        'daily_chat': daily_chat,
-        'daily_revenue': daily_revenue,
-        'day_labels': day_labels,
-        'top_packs': top_packs_list,
-        'user_growth': {
-            'this_month': new_users_this_month,
-            'last_month': new_users_last_month,
-            'growth_rate': user_growth_rate
-        },
-        'kpi': {
-            'total_revenue': total_revenue,
-            'retention_rate': retention_rate,
-            'total_actions': total_actions
-        },
-        'action_labels': action_labels,
-        'action_series': action_series,
-        'geo_labels': geo_labels,
-        'geo_series': geo_series,
-        'live': {
-            'active_users': live_active,
-            'actions': live_actions,
+    context = {
+        'analytics': {
+            'period': period,
+            'day_labels': day_labels,
+            'daily_images': daily_images,
+            'daily_chat': daily_chat,
+            'daily_revenue': daily_revenue,
+            'top_packs': top_packs_list,
+            'user_growth': {
+                'this_month': new_users_this_month,
+                'growth_rate': user_growth
+            },
+            'kpi': {
+                'total_revenue': total_revenue,
+                'retention_rate': retention,
+                'total_actions': total_actions,
+            },
+            'usage': {
+                'labels': ['Corrections photo', 'Questions chat'],
+                'series': [images_total, chat_total]
+            },
+            'levels': {
+                'labels': level_labels,
+                'series': level_values
+            },
+            'live': {
+                'active_users': live_users,
+                'actions_last_10min': live_actions
+            }
         }
     }
 
-    return render(request, 'custom_admin/admin/analytics.html', {'analytics': analytics_data})
+    return render(request, 'custom_admin/admin/analytics.html', context)
 
 
 # ===============================================
@@ -1370,6 +1352,38 @@ def export_all_reports(request):
 
 
 
+
+
+
+@login_required
+def admin_settings(request):
+    if not request.user.is_staff:
+        return render(request, '403.html', status=403)
+
+    settings = SiteSettings.get_instance()
+
+    if request.method == 'POST':
+        settings.support_email = request.POST.get('support_email', settings.support_email)
+        settings.support_whatsapp = request.POST.get('support_whatsapp', settings.support_whatsapp)
+        settings.support_phone = request.POST.get('support_phone', settings.support_phone)
+        settings.support_facebook = request.POST.get('support_facebook', settings.support_facebook)
+        settings.support_instagram = request.POST.get('support_instagram', settings.support_instagram)
+
+        settings.site_name = request.POST.get('site_name', settings.site_name)
+        settings.maintenance_mode = request.POST.get('maintenance_mode') == 'on'
+        settings.allow_registrations = request.POST.get('allow_registrations') == 'on'
+
+        # Reconstruire WhatsApp avec +225
+        whatsapp = request.POST.get('support_whatsapp', '')
+        if whatsapp and not whatsapp.startswith('+'):
+            settings.support_whatsapp = '+225' + whatsapp
+
+        settings.save()
+        messages.success(request, 'Paramètres sauvegardés avec succès !')
+        return redirect('custom_admin:settings')
+
+    context = {'settings': settings}
+    return render(request, 'custom_admin/admin/settings.html', context)
 
 
 

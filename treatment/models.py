@@ -103,3 +103,49 @@ class ImageCorrection(models.Model):
 
     def __str__(self):
         return f"{self.domaine} - {self.niveau} - {self.created_at.strftime('%d/%m %H:%M')}"        
+    
+    
+    
+
+class SiteSettings(models.Model):
+    # === SINGLETON ===
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # === GÉNÉRAL ===
+    site_name = models.CharField(max_length=100, default="Corrige Moi")
+    maintenance_mode = models.BooleanField(default=False)
+    allow_registrations = models.BooleanField(default=True)
+
+    # === SUPPORT (CE QUE TU VEUX DANS L'APP MOBILE) ===
+    support_email = models.EmailField(default="support@corrigemoi.ci")
+    support_whatsapp = models.CharField(max_length=20, default="+2250707070707")
+    support_phone = models.CharField(max_length=20, blank=True, default="")
+    support_facebook = models.URLField(blank=True, default="")
+    support_instagram = models.URLField(blank=True, default="")
+
+    # === AUTRES (tu gardes tout le reste) ===
+    timezone = models.CharField(max_length=50, default="Africa/Abidjan")
+    default_language = models.CharField(max_length=10, default="fr")
+    primary_color = models.CharField(max_length=7, default="#02A195")
+
+    # === API & SÉCURITÉ ===
+    master_api_key = models.CharField(max_length=100, unique=True, default=uuid.uuid4)
+
+    # === DATES ===
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Paramètres du site"
+        verbose_name_plural = "Paramètres du site"
+
+    def save(self, *args, **kwargs):
+        self.pk = "00000000-0000-0000-0000-000000000001"  # Force singleton
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_instance(cls):
+        obj, created = cls.objects.get_or_create(pk="00000000-0000-0000-0000-000000000001")
+        return obj
+
+    def __str__(self):
+        return "Paramètres du site"
