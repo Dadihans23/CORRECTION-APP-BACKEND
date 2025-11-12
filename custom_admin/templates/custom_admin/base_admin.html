@@ -54,8 +54,8 @@
         <i class="mdi mdi-chevron-down accordion-arrow"></i>
     </a>
     <ul class="sub-menu">
-        <li><a href="{% url 'custom_admin:reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">📋 Rapports</a></li>
-        <li><a href="" class="{% if request.resolver_match.url_name == 'settings' %}active{% endif %}">⚙️ Paramètres système</a></li>
+        {% comment %} <li><a href="{% url 'custom_admin:reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">📋 Rapports</a></li> {% endcomment %}
+        <li><a href="{% url 'custom_admin:settings' %}" class="{% if request.resolver_match.url_name == 'settings' %}active{% endif %}">⚙️ Paramètres système</a></li>
         <li><a href="{% url 'admin:index' %}">🔧 Django Admin</a></li>
     </ul>
 </li>

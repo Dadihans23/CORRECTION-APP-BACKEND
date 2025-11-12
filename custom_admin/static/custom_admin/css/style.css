@@ -78,8 +78,6 @@
     --bs-red: #f06548;
     --bs-orange: #f1963b;
     --bs-yellow: #f7b84b;
-    --bs-green: #0ab39c;
-    --bs-teal: #02a8b5;
     --bs-cyan: #299cdb;
     --bs-white: #ffffff;
     --bs-light: #f4f5fa;
@@ -96,7 +94,15 @@
     --bs-gray-900: #212529;
     --bs-primary: #518ce5;
     --bs-secondary: #878a99;
-    --bs-success: #0ab39c;
+    --bs-success: #1E88E5; /* couleur principale bleue */
+    --bs-secondary-text-emphasis: #2b2f32; /* laisse inchangé, neutre pour le texte */
+    --bs-success-border-subtle: #90CAF9; /* version claire du bleu pour bordures/subtilités */
+    --bs-form-valid-color: #1565C0; /* bleu plus foncé pour validation */
+    --bs-form-valid-border-color: #1565C0; /* bleu foncé pour bordure de validation */
+    --bs-success-text-emphasis: #0D47A1; /* bleu très foncé pour textes importants */
+    --bs-green: #1E88E5; /* harmonisé avec le bleu principal */
+    --bs-teal: #42A5F5; /* variante claire du bleu pour accent/teal */
+    --bs-teal: #02a8b5;
     --bs-info: #299cdb;
     --bs-warning: #f7b84b;
     --bs-danger: #f06548;
@@ -115,8 +121,6 @@
     --bs-muted-rgb: 135, 138, 153;
     --bs-white-rgb: 255, 255, 255;
     --bs-primary-text-emphasis: #052c65;
-    --bs-secondary-text-emphasis: #2b2f32;
-    --bs-success-text-emphasis: #0a3622;
     --bs-info-text-emphasis: #055160;
     --bs-warning-text-emphasis: #664d03;
     --bs-danger-text-emphasis: #58151c;
@@ -132,7 +136,6 @@
     --bs-dark-bg-subtle: #ced4da;
     --bs-primary-border-subtle: #9ec5fe;
     --bs-secondary-border-subtle: #c4c8cb;
-    --bs-success-border-subtle: #a3cfbb;
     --bs-info-border-subtle: #9eeaf9;
     --bs-warning-border-subtle: #ffe69c;
     --bs-danger-border-subtle: #f1aeb5;
@@ -188,8 +191,6 @@
     --bs-focus-ring-width: 0.25rem;
     --bs-focus-ring-opacity: 0.25;
     --bs-focus-ring-color: rgba(13, 110, 253, 0.25);
-    --bs-form-valid-color: #198754;
-    --bs-form-valid-border-color: #198754;
     --bs-form-invalid-color: #dc3545;
     --bs-form-invalid-border-color: #dc3545;
 }
@@ -4911,7 +4912,7 @@ textarea.form-control-lg {
     --bs-card-spacer-x: 2rem;
     --bs-card-title-spacer-y: 0.5rem;
     --bs-card-title-color: ;
-  --bs-card-subtitle-color:;
+    --bs-card-subtitle-color: ;
     --bs-card-border-width: 0;
     --bs-card-border-color: rgba(0, 0, 0, 0.125);
     --bs-card-border-radius: 0.25rem;
@@ -4921,7 +4922,7 @@ textarea.form-control-lg {
     --bs-card-cap-padding-x: 1rem;
     --bs-card-cap-bg: var(--bs-card-cap-bg);
     --bs-card-cap-color: ;
-  --bs-card-height:;
+    --bs-card-height: ;
     --bs-card-color: ;
   --bs-card-bg: var(--bs-card-bg);
     --bs-card-img-overlay-padding: 1rem;
@@ -5270,7 +5271,7 @@ textarea.form-control-lg {
     --bs-breadcrumb-padding-y: 0;
     --bs-breadcrumb-margin-bottom: 1rem;
     --bs-breadcrumb-bg: ;
-  --bs-breadcrumb-border-radius:;
+    --bs-breadcrumb-border-radius: ;
     --bs-breadcrumb-divider-color: #878a99;
     --bs-breadcrumb-item-padding-x: 0.5rem;
     --bs-breadcrumb-item-active-color: #878a99;

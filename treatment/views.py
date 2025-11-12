@@ -11,8 +11,8 @@ from rest_framework.response import Response
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
-from .models import CorrectionHistory  , ChatMessage  , ChatSession , ImageCorrection# Import du modèle
-from .serializers import CorrectionHistorySerializer , ChatMessageSerializer , ChatSessionDetailSerializer , ImageCorrectionSerializer
+from .models import CorrectionHistory  , ChatMessage  , ChatSession , ImageCorrection , SiteSettings # Import du modèle
+from .serializers import CorrectionHistorySerializer , ChatMessageSerializer , ChatSessionDetailSerializer , ImageCorrectionSerializer , SiteSettingsSerializer
 from subscriptions.models import   UsageLog , Subscription   # Import du modèle
 
 import google.generativeai as genai
@@ -1131,6 +1131,23 @@ def user_stats(request):
         'total_questions': subscription.pack.chat_questions_limit,
     })
     
+ 
+ 
+ 
+ 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def site_settings_view(request):
+    """
+    Endpoint pour récupérer les paramètres du site,
+    incluant les contacts de support.
+    """
+    settings = SiteSettings.get_instance()
+    serializer = SiteSettingsSerializer(settings)
+    return Response(serializer.data) 
+ 
+ 
+ 
     
 # import logging
 # import google.generativeai as genai

@@ -45,4 +45,6 @@ urlpatterns = [
     # ===============================================
     path('report/download/<str:report_type>/', views.download_report, name='download_report'),
     path('reports/export-all/', views.export_all_reports, name='export_all_reports'),
+    path('settings/', views.admin_settings, name='settings'),
+
 ]

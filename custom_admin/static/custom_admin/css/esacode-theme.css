@@ -1,9 +1,10 @@
 /* ESACODE ADMIN THEME - DESIGN ÉPURÉ ET PROFESSIONNEL */
 :root {
     /* Palette de couleurs Esacode */
-    --esacode-primary: #02A195;
-    --esacode-primary-light: #0BC5B8;
-    --esacode-primary-dark: #0b8a7a;
+    --esacode-primary: #1E88E5;        /* Couleur principale : bleu vif */
+    --esacode-primary-light: #42A5F5;  /* Variante plus claire */
+    --esacode-primary-dark: #1565C0;   /* Variante plus foncée */
+
     --esacode-secondary: #64748B;
     --esacode-success: #10B981;
     --esacode-warning: #F59E0B;
@@ -23,7 +24,7 @@
     --esacode-gray-900: #0F172A;
     
     /* Gradients */
-    --esacode-gradient: linear-gradient(135deg, #02A195 0%, #0BC5B8 100%);
+    --esacode-gradient: linear-gradient(135deg, #1E88E5 0%, #42A5F5 100%);
     --esacode-gradient-subtle: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
     
     /* Ombres modernes */
