@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(\"/c/Users/HP I7/Desktop/git_project/CORRECTION:*)",
+      "Bash(python3:*)",
+      "Bash(printf:*)",
+      "Bash(/dev/null:*)",
+      "Bash(cd:*)",
+      "Bash(echo:*)",
+      "Bash(/tmp/gen.py:*)",
+      "Bash(__NEW_LINE_ed3fc032956ffdca__ python3 -c \"\nf=open\\(''/tmp/gen.py'',''a'',encoding=''utf-8''\\)\nf.write\\(''import base64, json, os\\\\n''\\)\nf.write\\(''q=chr\\(39\\)\\\\n''\\)\nf.write\\(''cwd=os.getcwd\\(\\)\\\\n''\\)\nf.write\\(''drive=os.path.splitdrive\\(cwd\\)[0]+os.sep\\\\n''\\)\nf.write\\(''def build\\(L\\): return chr\\(10\\).join\\(L\\).replace\\(chr\\(123\\)+chr\\(37\\)+chr\\(37\\),chr\\(123\\)+chr\\(37\\)\\).replace\\(chr\\(37\\)+chr\\(37\\)+chr\\(125\\),chr\\(37\\)+chr\\(125\\)\\)+chr\\(10\\)\\\\n''\\)\nf.write\\(''def enc\\(s\\): return base64.b64encode\\(s.encode\\(\"\"utf-8\"\"\\)\\).decode\\(\\)\\\\n''\\)\nf.write\\(''data={}\\\\n''\\)\nf.close\\(\\)\nprint\\(''header written''\\)\n\")",
+      "Bash(/tmp/runner.py:*)"
+    ]
+  }
+}

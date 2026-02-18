@@ -1,92 +1,168 @@
-{% extends 'custom_admin/base_admin.html' %}
-{% load static %}
+{% extends "custom_admin/base_admin.html" %}
 
-{% block title %}{{ pack.name }} - Corrige Moi Admin{% endblock %}
+{% block title %}{{ pack.name }}{% endblock %}
+{% block page_title %}{{ pack.name }}{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'custom_admin:pack_edit' pack_id=pack.id %}" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+    Modifier
+</a>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title mb-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h3 class="fw-bold">{{ pack.name }}</h3>
-                        <p class="text-muted">Détail complet du pack</p>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <a href="{% url 'custom_admin:pack_edit' pack.id %}" class="btn btn-primary">
-                            <i class="mdi mdi-pencil"></i> Modifier
-                        </a>
-                        <a href="{% url 'custom_admin:packs' %}" class="btn btn-outline-secondary">
-                            <i class="mdi mdi-arrow-left"></i> Retour
-                        </a>
-                    </div>
+<!-- Stat Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+    <div class="stat-card bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wider">Prix</p>
+                <p class="text-xl font-bold text-gray-900">{{ pack.price|floatformat:0 }} <span class="text-sm font-normal text-gray-500">CFA</span></p>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wider">Abonnes actifs</p>
+                <p class="text-xl font-bold text-gray-900">{{ subscribers }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wider">Revenus total</p>
+                <p class="text-xl font-bold text-gray-900">{{ total_revenue|floatformat:0 }} <span class="text-sm font-normal text-gray-500">CFA</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pack Details -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-900">Details du pack</h2>
+        </div>
+        <div class="p-6 space-y-4">
+            <!-- Description -->
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Description</p>
+                <p class="text-sm text-gray-700">{{ pack.description|default:"Aucune description" }}</p>
+            </div>
+
+            <!-- Duration -->
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Duree</p>
+                <p class="text-sm text-gray-700">
+                    {% if pack.duration == 0 %}Illimite{% elif pack.duration == 30 %}30 jours{% elif pack.duration == 90 %}90 jours{% elif pack.duration == 365 %}1 an{% else %}{{ pack.duration }} jours{% endif %}
+                </p>
+            </div>
+
+            <!-- Limits -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Corrections images</p>
+                    <p class="text-sm font-semibold text-gray-900">{{ pack.image_corrections_limit }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Questions chat</p>
+                    <p class="text-sm font-semibold text-gray-900">{{ pack.chat_questions_limit }}</p>
+                </div>
+            </div>
+
+            <!-- Badges -->
+            <div class="flex items-center gap-3">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Meilleur plan</p>
+                    {% if pack.is_best_plan %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Oui</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Non</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Statut</p>
+                    {% if pack.is_active %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Actif</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Inactif</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="mdi mdi-package-variant text-white" style="font-size: 2.5rem;"></i>
-                    </div>
-                    <h4>{{ pack.name }}</h4>
-                    <h3 class="text-primary">{{ pack.price }} CFA</h3>
-                    {% if pack.is_best_plan %}
-                    <span class="badge bg-warning text-dark">Meilleur choix</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-body">
-                    <h6>Statistiques</h6>
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <h5 class="text-primary">{{ subscribers }}</h5>
-                            <small class="text-muted">Abonnés</small>
-                        </div>
-                        <div class="col-6">
-                            <h5 class="text-success">{{ total_revenue }} CFA</h5>
-                            <small class="text-muted">Revenus</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Features -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-900">Fonctionnalites</h2>
         </div>
-
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <h6>Détails</h6>
-                    <table class="table table-borderless">
-                        <tr><td><strong>Quotas</strong></td><td>{{ pack.image_corrections_limit|default:"∞" }} photos • {{ pack.chat_questions_limit|default:"∞" }} questions</td></tr>
-                        <tr><td><strong>Durée</strong></td><td>{% if pack.duration == 0 %}Illimité{% else %}{{ pack.duration }} jours{% endif %}</td></tr>
-                        <tr><td><strong>Statut</strong></td><td>{% if pack.is_active %}<span class="text-success">Actif</span>{% else %}<span class="text-danger">Inactif</span>{% endif %}</td></tr>
-                    </table>
-                    <p><strong>Description :</strong> {{ pack.description }}</p>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-body">
-                    <h6>Derniers abonnés</h6>
-                    <ul class="list-group list-group-flush">
-                        {% for sub in recent_subs %}
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>{{ sub.user.get_full_name|default:sub.user.phone_number }}</span>
-                            <small class="text-muted">{{ sub.created_at|date:"d/m/Y" }}</small>
-                        </li>
-                        {% empty %}
-                        <li class="list-group-item text-center text-muted">Aucun abonnement</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
+        <div class="p-6">
+            {% if pack.features %}
+            <ul class="space-y-2">
+                {% for feature in pack.features %}
+                <li class="flex items-start gap-2">
+                    <svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <span class="text-sm text-gray-700">{{ feature }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-sm text-gray-400">Aucune fonctionnalite definie.</p>
+            {% endif %}
         </div>
+    </div>
+</div>
+
+<!-- Recent Subscribers -->
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h2 class="text-base font-semibold text-gray-900">Abonnes recents</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-100">
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Telephone</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date d'abonnement</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Expiration</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for sub in recent_subs %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-3 text-sm text-gray-900 font-medium">{{ sub.user.phone_number }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-700">{{ sub.user.first_name }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-500">{{ sub.created_at|date:"d/m/Y H:i" }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-500">{{ sub.expires_at|date:"d/m/Y"|default:"Illimite" }}</td>
+                    <td class="px-6 py-3">
+                        {% if sub.is_active %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Actif</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Expire</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-400">Aucun abonne pour ce pack.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

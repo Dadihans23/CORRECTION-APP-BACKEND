@@ -1,315 +1,137 @@
-{% extends 'custom_admin/base_admin.html' %}
-{% load static %}
+{% extends "custom_admin/base_admin.html" %}
 
-{% block title %}Créer un utilisateur - Corrige Moi Admin{% endblock %}
+{% block title %}Nouvel utilisateur{% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <div>
-                        <h3 class="fw-bold mb-1">Créer un nouvel utilisateur</h3>
-                        <p class="text-muted mb-0">Ajoutez un élève ou un parent</p>
-                    </div>
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{% url 'custom_admin:dashboard' %}">Admin</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'custom_admin:users' %}">Utilisateurs</a></li>
-                        <li class="breadcrumb-item active">Créer</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
+{% block page_title %}Nouvel utilisateur{% endblock %}
 
-    <div class="row">
-        <!-- Formulaire -->
-        <div class="col-xl-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <h5 class="mb-3 border-bottom pb-2">Informations personnelles</h5>
-
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="row g-3">
-                            <!-- Téléphone (obligatoire) -->
-                            <div class="col-md-6">
-                                <label class="form-label">Téléphone <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" name="phone_number" placeholder="+225 01 23 45 67 89" required>
-                                <small class="text-muted">Numéro unique</small>
-                            </div>
-
-                            <!-- Email -->
-                            <div class="col-md-6">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" name="email" placeholder="parent@exemple.com">
-                            </div>
-
-                            <!-- Prénom & Nom -->
-                            <div class="col-md-6">
-                                <label class="form-label">Prénom <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="first_name" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Nom <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="last_name" required>
-                            </div>
-
-                            <!-- Mot de passe -->
-                            <div class="col-md-6">
-                                <label class="form-label">Mot de passe <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="password" name="password" required minlength="8">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password')">
-                                        <i class="mdi mdi-eye" id="eye-password"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Confirmer <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="confirm_password" name="confirm_password" required>
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirm_password')">
-                                        <i class="mdi mdi-eye" id="eye-confirm"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Pays & Niveau -->
-                            <div class="col-md-6">
-                                <label class="form-label">Pays</label>
-                                <input type="text" class="form-control" name="country" value="Côte d'Ivoire">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Niveau scolaire</label>
-                                <select class="form-select" name="school_level">
-                                    <option value="">— Choisir —</option>
-
-<!-- Primaire -->
-<option value="CP">CP (Cours Préparatoire)</option>
-<option value="CE1">CE1 (Cours Élémentaire 1)</option>
-<option value="CE2">CE2 (Cours Élémentaire 2)</option>
-<option value="CM1">CM1 (Cours Moyen 1)</option>
-<option value="CM2">CM2 (Cours Moyen 2)</option>
-
-<!-- Collège -->
-<option value="6eme">6ème</option>
-<option value="5eme">5ème</option>
-<option value="4eme">4ème</option>
-<option value="3eme">3ème</option>
-
-<!-- Lycée -->
-<option value="2nde">Seconde</option>
-<option value="1ere">Première</option>
-<option value="terminale">Terminale</option>
-
-<!-- Université / Enseignement supérieur -->
-<option value="L1">Licence 1 (L1)</option>
-<option value="L2">Licence 2 (L2)</option>
-<option value="L3">Licence 3 (L3)</option>
-<option value="M1">Master 1 (M1)</option>
-<option value="M2">Master 2 (M2)</option>
-<option value="Doctorat">Doctorat</option>
-
-                                </select>
-                            </div>
-
-                            <!-- Établissement & Âge -->
-                            <div class="col-md-8">
-                                <label class="form-label">Établissement</label>
-                                <input type="text" class="form-control" name="institution">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Âge</label>
-                                <input type="number" class="form-control" name="age" min="5" max="100">
-                            </div>
-                        </div>
-
-                        <h5 class="mt-4 mb-3 border-bottom pb-2">Permissions</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
-                                    <label class="form-check-label" for="is_active">Compte actif</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="is_staff" name="is_staff">
-                                    <label class="form-check-label" for="is_staff">Accès administrateur</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-flex gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="mdi mdi-account-plus"></i> Créer
-                            </button>
-                            <button type="button" class="btn btn-outline-warning" onclick="generatePassword()">
-                                <i class="mdi mdi-key"></i> Générer mot de passe
-                            </button>
-                            <a href="{% url 'custom_admin:users' %}" class="btn btn-outline-secondary">
-                                <i class="mdi mdi-arrow-left"></i> Annuler
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Force du mot de passe -->
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-body">
-                    <h6 class="mb-3">Force du mot de passe</h6>
-                    <div class="progress mb-2" style="height: 8px;">
-                        <div class="progress-bar" id="strength-bar" style="width: 0%"></div>
-                    </div>
-                    <small class="text-muted" id="strength-text">Entrez un mot de passe</small>
-                    <ul class="list-unstyled mt-2 small">
-                        <li id="len"><span class="text-muted">8+ caractères</span></li>
-                        <li id="upper"><span class="text-muted">Majuscule</span></li>
-                        <li id="lower"><span class="text-muted">Minuscule</span></li>
-                        <li id="num"><span class="text-muted">Chiffre</span></li>
-                        <li id="spec"><span class="text-muted">Spécial (!@#)</span></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Aperçu -->
-        <div class="col-xl-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <h6 class="mb-3">Aperçu</h6>
-                    <div class="avatar-lg bg-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
-                        <i class="mdi mdi-account text-white" style="font-size: 3rem;"></i>
-                    </div>
-                    <h5 id="preview-name">Nom complet</h5>
-                    <p class="text-muted small" id="preview-phone">+225 XX XX XX XX</p>
-                    <p class="text-muted small" id="preview-email">email@exemple.com</p>
-
-                    <div class="mt-3 d-flex justify-content-center gap-2 flex-wrap">
-                        <span class="badge bg-success" id="badge-active">
-                            <i class="mdi mdi-check-circle"></i> Actif
-                        </span>
-                        <span class="badge bg-warning text-dark" id="badge-staff" style="display:none">
-                            <i class="mdi mdi-shield-account"></i> Staff
-                        </span>
-                    </div>
-
-                    <div class="mt-3 p-3 bg-light rounded">
-                        <small class="text-muted d-block">Pack gratuit attribué automatiquement</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% block header_actions %}
+<a href="{% url 'custom_admin:users' %}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    Retour a la liste
+</a>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const $ = (s) => document.querySelector(s);
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Informations de l'utilisateur</h2>
+            <p class="text-sm text-gray-500 mt-1">Remplissez les champs ci-dessous pour creer un nouvel utilisateur.</p>
+        </div>
 
-    // Aperçu en temps réel
-    $('[name="first_name"], [name="last_name"]').forEach(el => {
-        el.addEventListener('input', updatePreview);
-    });
-    $('[name="phone_number"]').addEventListener('input', updatePreview);
-    $('[name="email"]').addEventListener('input', updatePreview);
-    $('#is_active').addEventListener('change', updatePreview);
-    $('#is_staff').addEventListener('change', updatePreview);
+        <form method="POST" class="p-6 space-y-6">
+            {% csrf_token %}
 
-    function updatePreview() {
-        const first = $('[name="first_name"]').value.trim();
-        const last = $('[name="last_name"]').value.trim();
-        $('#preview-name').textContent = first && last ? `${first} ${last}` : 'Nom complet';
+            <!-- Identite -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">Prenom <span class="text-red-500">*</span></label>
+                    <input type="text" name="first_name" id="first_name" required
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
+                           placeholder="Prenom">
+                </div>
+                <div>
+                    <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Nom <span class="text-red-500">*</span></label>
+                    <input type="text" name="last_name" id="last_name" required
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
+                           placeholder="Nom">
+                </div>
+            </div>
 
-        const phone = $('[name="phone_number"]').value || '+225 XX XX XX XX';
-        $('#preview-phone').textContent = phone;
+            <!-- Contact -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="phone_number" class="block text-sm font-medium text-gray-700 mb-1">Telephone <span class="text-red-500">*</span></label>
+                    <input type="text" name="phone_number" id="phone_number" required
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
+                           placeholder="+2250701234567">
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" name="email" id="email"
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
+                           placeholder="email@exemple.com">
+                </div>
+            </div>
 
-        const email = $('[name="email"]').value || 'email@exemple.com';
-        $('#preview-email').textContent = email;
+            <!-- Mot de passe -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Mot de passe <span class="text-red-500">*</span></label>
+                    <input type="password" name="password" id="password" required
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
+                           placeholder="Mot de passe">
+                </div>
+                <div>
+                    <label for="confirm_password" class="block text-sm font-medium text-gray-700 mb-1">Confirmer le mot de passe <span class="text-red-500">*</span></label>
+                    <input type="password" name="confirm_password" id="confirm_password" required
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
+                           placeholder="Confirmer le mot de passe">
+                </div>
+            </div>
 
-        $('#badge-active').style.display = $('#is_active').checked ? 'inline-flex' : 'none';
-        $('#badge-staff').style.display = $('#is_staff').checked ? 'inline-flex' : 'none';
-    }
+            <!-- Profil -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label for="country" class="block text-sm font-medium text-gray-700 mb-1">Pays</label>
+                    <input type="text" name="country" id="country"
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
+                           placeholder="Cote d'Ivoire">
+                </div>
+                <div>
+                    <label for="school_level" class="block text-sm font-medium text-gray-700 mb-1">Niveau scolaire</label>
+                    <select name="school_level" id="school_level"
+                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                        <option value="">-- Selectionner --</option>
+                        <option value="College">College</option>
+                        <option value="Lycee">Lycee</option>
+                        <option value="Superieur">Superieur</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="institution" class="block text-sm font-medium text-gray-700 mb-1">Etablissement</label>
+                    <input type="text" name="institution" id="institution"
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
+                           placeholder="Nom de l'etablissement">
+                </div>
+            </div>
 
-    // Force mot de passe
-    $('#password').addEventListener('input', checkPassword);
-    function checkPassword() {
-        const pwd = $('#password').value;
-        let score = 0;
-        const checks = { len: false, upper: false, lower: false, num: false, spec: false };
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label for="age" class="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                    <input type="number" name="age" id="age" min="1" max="120"
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
+                           placeholder="Age">
+                </div>
+            </div>
 
-        if (pwd.length >= 8) { score += 20; checks.len = true; }
-        if (/[A-Z]/.test(pwd)) { score += 20; checks.upper = true; }
-        if (/[a-z]/.test(pwd)) { score += 20; checks.lower = true; }
-        if (/\d/.test(pwd)) { score += 20; checks.num = true; }
-        if (/[^A-Za-z0-9]/.test(pwd)) { score += 20; checks.spec = true; }
+            <!-- Options -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-sm font-medium text-gray-700 mb-4">Options du compte</h3>
+                <div class="flex items-center gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="is_active" checked
+                               class="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500">
+                        <span class="text-sm text-gray-700">Compte actif</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="is_staff"
+                               class="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500">
+                        <span class="text-sm text-gray-700">Membre du staff</span>
+                    </label>
+                </div>
+            </div>
 
-        const bar = $('#strength-bar');
-        const text = $('#strength-text');
-        bar.style.width = score + '%';
-        bar.className = 'progress-bar ' + (score < 40 ? 'bg-danger' : score < 80 ? 'bg-warning' : 'bg-success');
-        text.textContent = score < 40 ? 'Faible' : score < 80 ? 'Moyen' : 'Fort';
-
-        Object.keys(checks).forEach(k => {
-            const el = $(`#${k}`);
-            el.innerHTML = checks[k]
-                ? `<span class="text-success"><i class="mdi mdi-check"></i> ${el.dataset.label}</span>`
-                : `<span class="text-muted"><i class="mdi mdi-close"></i> ${el.dataset.label}</span>`;
-        });
-    }
-
-    // Initialiser labels
-    $('#len').dataset.label = '8+ caractères';
-    $('#upper').dataset.label = 'Majuscule';
-    $('#lower').dataset.label = 'Minuscule';
-    $('#num').dataset.label = 'Chiffre';
-    $('#spec').dataset.label = 'Spécial (!@#)';
-
-    // Toggle mot de passe
-    window.togglePassword = function(id) {
-        const field = $(`#${id}`);
-        const icon = $(`#eye-${id}`);
-        if (field.type === 'password') {
-            field.type = 'text';
-            icon.classList.replace('mdi-eye', 'mdi-eye-off');
-        } else {
-            field.type = 'password';
-            icon.classList.replace('mdi-eye-off', 'mdi-eye');
-        }
-    };
-
-    // Générer mot de passe
-    window.generatePassword = function() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-        let pwd = '';
-        pwd += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
-        pwd += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
-        pwd += '0123456789'[Math.floor(Math.random() * 10)];
-        pwd += '!@#$%^&*'[Math.floor(Math.random() * 8)];
-        for (let i = 4; i < 12; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
-        pwd = pwd.split('').sort(() => Math.random() - 0.5).join('');
-        $('#password').value = pwd;
-        $('#confirm_password').value = pwd;
-        checkPassword();
-    };
-
-    // Validation confirmation
-    $('#confirm_password').addEventListener('input', function() {
-        const match = this.value === $('#password').value;
-        this.classList.toggle('is-invalid', this.value && !match);
-    });
-});
-</script>
-
-<style>
-.avatar-lg { width: 80px; height: 80px; }
-.form-check-input:checked { background-color: #0d9488; border-color: #0d9488; }
-.progress { height: 8px; }
-#strength-bar { transition: width 0.3s ease; }
-</style>
+            <!-- Actions -->
+            <div class="border-t border-gray-200 pt-6 flex items-center justify-end gap-3">
+                <a href="{% url 'custom_admin:users' %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Annuler
+                </a>
+                <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+                    Creer l'utilisateur
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

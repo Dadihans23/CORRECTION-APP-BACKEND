@@ -5,7 +5,6 @@ urlpatterns = [
     path('process-image/', ProcessImageView.as_view(), name='process-image'),
     # Tes autres endpoints auth (login, profile, etc.)
     path('history/', HistoryView.as_view(), name='hystory'),
-    path('user-stats/', user_stats, name='user_stats'),
 
     
     path('chat/sessions/', ChatSessionListCreateView.as_view(), name='chat-sessions'),
@@ -16,9 +15,6 @@ urlpatterns = [
     path('test/history/', history_corrections),
     path('user/stats/', user_stats),
     path('site-settings/', site_settings_view, name='api-site-settings'),
-
-
-
 
 
 ]

@@ -18,17 +18,17 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from custom_admin.views import landing_page
 
 
 
 urlpatterns = [
+    path('landing/', landing_page, name='landing'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('authentification.urls')),
     path('api/treatment/', include('treatment.urls')),
     path('api/subscription/', include('subscriptions.urls')),
     path('custom-admin/', include('custom_admin.urls')),
-
-
 ]
 
 

@@ -1,0 +1,163 @@
+{% extends "custom_admin/base_admin.html" %}
+
+{% block title %}Paiements{% endblock %}
+{% block page_title %}Paiements & Revenus{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-green-500">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Revenue Totale</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ total_revenue|floatformat:0 }} <span class="text-sm font-normal text-gray-500">CFA</span></p>
+    </div>
+    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-brand-500">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Ce Mois</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ this_month_revenue|floatformat:0 }} <span class="text-sm font-normal text-gray-500">CFA</span></p>
+    </div>
+    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-blue-500">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Transactions</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ total_tx }}</p>
+    </div>
+    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-purple-500">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Aujourd'hui</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ today_tx }}</p>
+    </div>
+</div>
+
+<!-- Revenue Chart -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+    <h3 class="text-sm font-semibold text-gray-900 mb-4">Revenus mensuels (6 derniers mois)</h3>
+    <div style="height: 280px;">
+        <canvas id="revenueChart"></canvas>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6">
+    <form method="GET" class="flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[180px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Recherche</label>
+            <input type="text" name="q" value="{{ search }}" placeholder="Telephone, pack..." class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Type</label>
+            <select name="type" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                <option value="">Tous</option>
+                <option value="subscription" {% if tx_type == 'subscription' %}selected{% endif %}>Souscription</option>
+                <option value="upgrade" {% if tx_type == 'upgrade' %}selected{% endif %}>Upgrade</option>
+                <option value="renewal" {% if tx_type == 'renewal' %}selected{% endif %}>Renouvellement</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Du</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Au</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+        </div>
+        <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg text-sm">Filtrer</button>
+    </form>
+</div>
+
+<!-- Transactions Table -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Utilisateur</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Pack</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Montant</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for tx in page_obj %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-500">{{ tx.id }}</td>
+                    <td class="px-4 py-3">
+                        <p class="text-sm font-medium text-gray-900">{{ tx.user.first_name }} {{ tx.user.last_name }}</p>
+                        <p class="text-xs text-gray-500">{{ tx.user.phone_number }}</p>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ tx.pack.name }}</td>
+                    <td class="px-4 py-3">
+                        {% if tx.transaction_type == 'subscription' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Souscription</span>
+                        {% elif tx.transaction_type == 'upgrade' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Upgrade</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Renouvellement</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ tx.price_paid|floatformat:0 }} CFA</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">{{ tx.created_at|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500">Aucune transaction trouvee.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+        <p class="text-sm text-gray-500">
+            Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+        </p>
+        <div class="flex gap-1">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&q={{ search }}&type={{ tx_type }}&start_date={{ start_date }}&end_date={{ end_date }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-100">Precedent</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&q={{ search }}&type={{ tx_type }}&start_date={{ start_date }}&end_date={{ end_date }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-100">Suivant</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const monthlyData = {{ monthly_data|safe }};
+const ctx = document.getElementById('revenueChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: monthlyData.map(d => d.label),
+        datasets: [{
+            label: 'Revenus (CFA)',
+            data: monthlyData.map(d => d.revenue),
+            backgroundColor: 'rgba(2, 161, 149, 0.15)',
+            borderColor: '#02A195',
+            borderWidth: 2,
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: { color: '#f3f4f6' },
+                ticks: { font: { size: 11 } }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { font: { size: 11 } }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

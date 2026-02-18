@@ -34,7 +34,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=50)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    is_verified = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False)
     country = models.CharField(max_length=100, blank=True, null=True)
     school_level = models.CharField(max_length=100, blank=True, null=True)

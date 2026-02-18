@@ -15,7 +15,6 @@ from .models import CorrectionHistory  , ChatMessage  , ChatSession , ImageCorre
 from .serializers import CorrectionHistorySerializer , ChatMessageSerializer , ChatSessionDetailSerializer , ImageCorrectionSerializer , SiteSettingsSerializer
 from subscriptions.models import   UsageLog , Subscription   # Import du modèle
 
-import google.generativeai as genai
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
@@ -1004,21 +1003,18 @@ def correct_and_upload(request):
 
     prompt = f"""
 Tu es une intelligence artificielle experte en éducation, chargée de corriger des exercices à partir d’une photo.  
-Ta mission : fournir une réponse claire, structurée et agréable à lire sur mobile.
+Ta mission : fournir une réponse claire, concise et agréable à lire sur mobile.
 
 Voici le contexte :
 - Matière : {domaine}
 - Niveau : {niveau}
-- Type : {type_ex}
-- Attente : {attente}
 - Infos supplémentaires : {infos}
 
 Réponds uniquement en **Markdown lisible et esthétique**, dans le style de l’application mobile ChatGPT.
 
 Structure attendue :
-1. **Question reconnue** (si identifiable)
-2. **Correction détaillée**, étape par étape ou par paragraphe clair
-3. **Traite l'exercice **, bien intégrée au texte (pas de cadre obligatoire)
+1. **Traite l'exercice **, bien intégrée au texte (pas de cadre obligatoire)
+2.** Resulat final au différentes question ** , 
 
 Règles de style Markdown :
 - Utilise des titres (`##`, `###`) seulement si c’est utile.
@@ -1123,12 +1119,18 @@ def user_stats(request):
             'message': 'Aucun abonnement actif'
         })
 
+    # Total réel = remaining + déjà utilisé (inclut les quotas cumulés des anciens abonnements)
+    images_used = UsageLog.objects.filter(subscription=subscription, action='IMAGE_CORRECTION').count()
+    questions_used = UsageLog.objects.filter(subscription=subscription, action='CHAT_QUESTION').count()
+
     return Response({
         'success': True,
         'remaining_images': subscription.image_corrections_remaining,
-        'total_images': subscription.pack.image_corrections_limit,
+        'total_images': subscription.image_corrections_remaining + images_used,
+        'used_images': images_used,
         'remaining_questions': subscription.chat_questions_remaining,
-        'total_questions': subscription.pack.chat_questions_limit,
+        'total_questions': subscription.chat_questions_remaining + questions_used,
+        'used_questions': questions_used,
     })
     
  
@@ -1147,8 +1149,17 @@ def site_settings_view(request):
     return Response(serializer.data) 
  
  
- 
-    
+
+
+
+
+
+
+
+
+
+
+
 # import logging
 # import google.generativeai as genai
 # from django.conf import settings
