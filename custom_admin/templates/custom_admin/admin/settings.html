@@ -1,151 +1,81 @@
-{% extends 'custom_admin/base_admin.html' %}
-{% load static %}
+{% extends "custom_admin/base_admin.html" %}
 
-{% block title %}Paramètres - {{ settings.site_name }}{% endblock %}
+{% block title %}Parametres{% endblock %}
+{% block page_title %}Parametres{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <div>
-                        <h3 class="fw-bold mb-1">Paramètres du site</h3>
-                        <p class="text-muted mb-0">Configuration générale et support client</p>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" form="settingsForm" class="btn btn-success">
-                            <i class="mdi mdi-content-save"></i> Sauvegarder
-                        </button>
-                    </div>
+<form method="post" class="max-w-3xl space-y-6">
+    {% csrf_token %}
+
+    <!-- Section: General -->
+    <div class="bg-white rounded-xl border border-gray-200">
+        <div class="px-5 py-4 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-900">General</h2>
+            <p class="text-xs text-gray-500 mt-0.5">Parametres generaux de la plateforme</p>
+        </div>
+        <div class="p-5 space-y-4">
+            <div>
+                <label for="site_name" class="block text-sm font-medium text-gray-700 mb-1">Nom du site</label>
+                <input type="text" name="site_name" id="site_name" value="{{ settings.site_name }}" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            </div>
+            <div class="flex items-center justify-between py-2">
+                <div>
+                    <label for="maintenance_mode" class="text-sm font-medium text-gray-700">Mode maintenance</label>
+                    <p class="text-xs text-gray-500">Desactiver temporairement l'acces au site</p>
                 </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="maintenance_mode" id="maintenance_mode" {% if settings.maintenance_mode %}checked{% endif %} class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                </label>
+            </div>
+            <div class="flex items-center justify-between py-2">
+                <div>
+                    <label for="allow_registrations" class="text-sm font-medium text-gray-700">Autoriser les inscriptions</label>
+                    <p class="text-xs text-gray-500">Permettre aux nouveaux utilisateurs de s'inscrire</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="allow_registrations" id="allow_registrations" {% if settings.allow_registrations %}checked{% endif %} class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                </label>
             </div>
         </div>
     </div>
 
-    <form id="settingsForm" method="POST" action="{% url 'custom_admin:settings' %}">
-        {% csrf_token %}
-
-        <div class="row">
-            <!-- Paramètres généraux -->
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title mb-4">
-                            <i class="mdi mdi-cog text-primary"></i> Paramètres généraux
-                        </h5>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Nom du site</label>
-                            <input type="text" class="form-control form-control-lg" name="site_name" value="{{ settings.site_name }}" required>
-                        </div>
-
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" name="maintenance_mode" id="maintenanceMode" {% if settings.maintenance_mode %}checked{% endif %}>
-                            <label class="form-check-label fw-medium" for="maintenanceMode">
-                                Mode maintenance actif
-                            </label>
-                            <small class="text-muted d-block">L'app mobile affichera un message de maintenance</small>
-                        </div>
-
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="allow_registrations" id="allowRegistrations" {% if settings.allow_registrations %}checked{% endif %}>
-                            <label class="form-check-label fw-medium" for="allowRegistrations">
-                                Autoriser les nouvelles inscriptions
-                            </label>
-                        </div>
-                    </div>
-                </div>
+    <!-- Section: Support -->
+    <div class="bg-white rounded-xl border border-gray-200">
+        <div class="px-5 py-4 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-900">Support</h2>
+            <p class="text-xs text-gray-500 mt-0.5">Coordonnees de contact et reseaux sociaux</p>
+        </div>
+        <div class="p-5 space-y-4">
+            <div>
+                <label for="support_email" class="block text-sm font-medium text-gray-700 mb-1">Email de support</label>
+                <input type="email" name="support_email" id="support_email" value="{{ settings.support_email }}" placeholder="support@example.com" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
             </div>
-
-            <!-- Support & Contact -->
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title mb-4">
-                            <i class="mdi mdi-face-agent text-success"></i> Support Client
-                        </h5>
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Email support</label>
-                                <input type="email" class="form-control" name="support_email" value="{{ settings.support_email }}" required>
-                                <small class="text-muted">Visible dans l'app mobile</small>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">WhatsApp support</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-success text-white">+225</span>
-                                    <input type="text" class="form-control" name="support_whatsapp" value="{{ settings.support_whatsapp|slice:'5:' }}" maxlength="10" placeholder="0707070707" required>
-                                </div>
-                                <small class="text-success fw-medium">Numéro complet : +225{{ settings.support_whatsapp|slice:"5:" }}</small>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mt-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Téléphone fixe</label>
-                                <input type="text" class="form-control" name="support_phone" value="{{ settings.support_phone }}" placeholder="01 23 45 67 89">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Page Facebook</label>
-                                <input type="url" class="form-control" name="support_facebook" value="{{ settings.support_facebook }}" placeholder="https://facebook.com/corrigemoi">
-                            </div>
-                        </div>
-
-                        <div class="mt-3">
-                            <label class="form-label">Instagram</label>
-                            <input type="url" class="form-control" name="support_instagram" value="{{ settings.support_instagram }}" placeholder="https://instagram.com/corrigemoi">
-                        </div>
-
-                        <div class="alert alert-success mt-4 p-3">
-                            <i class="mdi mdi-cellphone-wireless"></i>
-                            <strong>App mobile mise à jour automatiquement</strong><br>
-                            Toutes ces informations sont récupérées via <code>/api/settings/</code>
-                        </div>
-                    </div>
-                </div>
+            <div>
+                <label for="support_whatsapp" class="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                <input type="text" name="support_whatsapp" id="support_whatsapp" value="{{ settings.support_whatsapp }}" placeholder="+225XXXXXXXXXX" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            </div>
+            <div>
+                <label for="support_phone" class="block text-sm font-medium text-gray-700 mb-1">Telephone</label>
+                <input type="text" name="support_phone" id="support_phone" value="{{ settings.support_phone }}" placeholder="+225XXXXXXXXXX" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            </div>
+            <div>
+                <label for="support_facebook" class="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
+                <input type="url" name="support_facebook" id="support_facebook" value="{{ settings.support_facebook }}" placeholder="https://facebook.com/..." class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            </div>
+            <div>
+                <label for="support_instagram" class="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+                <input type="url" name="support_instagram" id="support_instagram" value="{{ settings.support_instagram }}" placeholder="https://instagram.com/..." class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
             </div>
         </div>
-    </form>
-</div>
-{% endblock %}
+    </div>
 
-{% block extra_js %}
-<script>
-function resetToDefaults() {
-    if (confirm('Restaurer les valeurs par défaut ?')) {
-        document.getElementById('settingsForm').reset();
-        showToast('Formulaire réinitialisé', 'info');
-    }
-}
-
-function showToast(msg, type = 'info') {
-    if (window.CorrigeMoiAdmin?.showToast) {
-        window.CorrigeMoiAdmin.showToast(msg, type);
-    } else {
-        alert(msg);
-    }
-}
-
-// Focus sur le premier champ
-document.querySelector('input[name="site_name"]').focus();
-</script>
-
-<style>
-.card-title i {
-    font-size: 1.4rem;
-    margin-right: 8px;
-}
-.form-check-input:checked {
-    background-color: #02A195;
-    border-color: #02A195;
-}
-.input-group-text {
-    font-weight: bold;
-}
-small.text-success {
-    font-weight: 600;
-}
-</style>
+    <!-- Submit -->
+    <div class="flex justify-end">
+        <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-6 rounded-lg text-sm transition-colors">
+            Sauvegarder les parametres
+        </button>
+    </div>
+</form>
 {% endblock %}

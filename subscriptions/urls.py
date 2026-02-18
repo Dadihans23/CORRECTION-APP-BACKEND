@@ -11,5 +11,6 @@ urlpatterns = [
     path('subscribe/', views.SubscribeToPackView.as_view(), name='subscribe'),
     path('my-subscription/', views.MySubscriptionView.as_view(), name='my-subscription'),
     path('subscription-history/', views.subscription_history, name='subscription-history'),
-    path('transactions/', views.TransactionListView.as_view(), name='my-subscription'),
+    path('transactions/', views.TransactionListView.as_view(), name='transactions'),
+    path('dashboard/', views.SubscriptionDashboardView.as_view(), name='subscription-dashboard'),
 ]

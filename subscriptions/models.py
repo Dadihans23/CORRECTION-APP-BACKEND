@@ -128,7 +128,7 @@ class Subscription(models.Model):
         return f"{self.user.email} - {self.pack.name} [{status}]"
 
     class Meta:
-        unique_together = ('user', 'pack')
+        pass
 
 
 # ==================== USAGE LOG (remplace ApiCall) ====================
@@ -161,6 +161,7 @@ class Transaction(models.Model):
     TRANSACTION_TYPES = (
         ('subscription', 'Souscription'),
         ('upgrade', 'Upgrade'),
+        ('renewal', 'Renouvellement'),
     )
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='transactions')

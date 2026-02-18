@@ -1,241 +1,318 @@
-{% extends 'custom_admin/base_admin.html' %}
-{% load static %}
+{% extends "custom_admin/base_admin.html" %}
 
-{% block title %}Utilisateur #{{ user.id }} - Corrige Moi Admin{% endblock %}
+{% block title %}{{ user.first_name }} {{ user.last_name }}{% endblock %}
+
+{% block page_title %}Detail utilisateur{% endblock %}
+
+{% block header_actions %}
+<div class="flex items-center gap-2">
+    <a href="{% url 'custom_admin:user_edit' user_id=user.id %}" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        Modifier
+    </a>
+    <button onclick="deleteUser({{ user.id }}, '{{ user.first_name }} {{ user.last_name }}')" class="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        Supprimer
+    </button>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <div>
-                        <h3 class="fw-bold mb-1">Détails Utilisateur</h3>
-                        <p class="text-muted mb-0">Informations complètes de {{ user.get_full_name }}</p>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <a href="{% url 'custom_admin:user_edit' user.id %}" class="btn btn-primary">
-                            <i class="mdi mdi-pencil"></i> Modifier
-                        </a>
-                        <button class="btn btn-outline-danger" onclick="deleteUser({{ user.id }})">
-                            <i class="mdi mdi-delete"></i> Supprimer
-                        </button>
-                        <a href="{% url 'custom_admin:users' %}" class="btn btn-outline-secondary">
-                            <i class="mdi mdi-arrow-left"></i> Retour
-                        </a>
-                    </div>
-                </div>
+<!-- User Header -->
+<div class="mb-6">
+    <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center">
+            <span class="text-xl font-bold text-brand-700">{{ user.first_name|first }}{{ user.last_name|first }}</span>
+        </div>
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">{{ user.first_name }} {{ user.last_name }}</h2>
+            <p class="text-sm text-gray-500">{{ user.phone_number }}</p>
+        </div>
+        <div class="ml-4 flex items-center gap-2">
+            {% if user.is_active %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Actif</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Inactif</span>
+            {% endif %}
+            {% if user.is_staff %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Staff</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Total depense</p>
+                <p class="text-xl font-bold text-gray-900">{{ total_spent|floatformat:0 }} F</p>
             </div>
         </div>
     </div>
+    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Corrections photo</p>
+                <p class="text-xl font-bold text-gray-900">{{ total_image_corrections }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Questions chat</p>
+                <p class="text-xl font-bold text-gray-900">{{ total_chat_questions }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Actions totales</p>
+                <p class="text-xl font-bold text-gray-900">{{ total_actions }}</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <div class="row">
-        <!-- Profil Utilisateur -->
-        <div class="col-xl-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="avatar-lg bg-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
-                        <i class="mdi mdi-account text-white" style="font-size: 3rem;"></i>
-                    </div>
-                    <h4 class="mb-1">{{ user.get_full_name }}</h4>
-                    <p class="text-muted mb-1">+{{ user.phone_number }}</p>
-                    <p class="small text-muted">{{ user.email|default:"Non renseigné" }}</p>
-
-                    <div class="row text-center mt-4 g-3">
-                        <div class="col-4">
-                            <h5 class="text-primary fw-bold">{{ subscriptions|length }}</h5>
-                            <p class="text-muted small mb-0">Abonnements</p>
-                        </div>
-                        <div class="col-4">
-                            <h5 class="text-success fw-bold">{{ total_spent|floatformat:0 }} CFA</h5>
-                            <p class="text-muted small mb-0">Dépensé</p>
-                        </div>
-                        <div class="col-4">
-                            <h5 class="text-info fw-bold">{{ total_actions }}</h5>
-                            <p class="text-muted small mb-0">Actions</p>
-                        </div>
-                    </div>
-
-                    <div class="mt-3">
+<!-- Two Columns -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Left: User Info -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-base font-semibold text-gray-900">Informations personnelles</h3>
+        </div>
+        <div class="p-6">
+            <dl class="space-y-4">
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-500">Telephone</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ user.phone_number }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-500">Email</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ user.email|default:"-" }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-500">Pays</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ user.country|default:"-" }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-500">Niveau scolaire</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ user.school_level|default:"-" }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-500">Etablissement</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ user.institution|default:"-" }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-500">Age</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ user.age|default:"-" }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-500">Date d'inscription</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ user.date_joined|date:"d/m/Y H:i" }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-500">Statut</dt>
+                    <dd>
                         {% if user.is_active %}
-                            <span class="badge bg-success">
-                                <i class="mdi mdi-check-circle"></i> Actif
-                            </span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Actif</span>
                         {% else %}
-                            <span class="badge bg-danger">
-                                <i class="mdi mdi-close-circle"></i> Inactif
-                            </span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Inactif</span>
                         {% endif %}
+                    </dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-500">Staff</dt>
+                    <dd>
+                        {% if user.is_staff %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Oui</span>
+                        {% else %}
+                        <span class="text-sm text-gray-400">Non</span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </div>
 
-                        {% if active_sub %}
-                            <span class="badge bg-primary ms-1">
-                                <i class="mdi mdi-star"></i> Abonné
-                            </span>
+    <!-- Right: Subscription + Recent Actions -->
+    <div class="space-y-6">
+        <!-- Active Subscription -->
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-base font-semibold text-gray-900">Abonnement actif</h3>
+            </div>
+            <div class="p-6">
+                {% if active_sub %}
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-900">{{ active_sub.pack.name }}</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">Actif</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">Expire le {{ active_sub.end_date|date:"d/m/Y" }}</p>
+                </div>
+
+                <!-- Image corrections quota -->
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-gray-600">Corrections photo</span>
+                        <span class="font-medium text-gray-900">{{ images_remaining }} / {{ active_sub.pack.image_corrections_limit }}</span>
+                    </div>
+                    {% with percent=images_remaining|floatformat:0 total=active_sub.pack.image_corrections_limit %}
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        {% if active_sub.pack.image_corrections_limit > 0 %}
+                        <div class="bg-brand-500 h-2 rounded-full transition-all" style="width: {% widthratio images_remaining active_sub.pack.image_corrections_limit 100 %}%"></div>
+                        {% else %}
+                        <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                </div>
+
+                <!-- Chat questions quota -->
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-gray-600">Questions chat</span>
+                        <span class="font-medium text-gray-900">{{ chat_remaining }} / {{ active_sub.pack.chat_questions_limit }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        {% if active_sub.pack.chat_questions_limit > 0 %}
+                        <div class="bg-purple-500 h-2 rounded-full transition-all" style="width: {% widthratio chat_remaining active_sub.pack.chat_questions_limit 100 %}%"></div>
+                        {% else %}
+                        <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
                         {% endif %}
                     </div>
                 </div>
-            </div>
-
-            <!-- Quotas actuels -->
-            {% if active_sub %}
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-body">
-                    <h6 class="mb-3">Quotas restants</h6>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="small">Corrections photo</span>
-                        <strong>{{ images_remaining }} / {{ active_sub.pack.image_corrections_limit|default:"∞" }}</strong>
-                    </div>
-                    <div class="progress mb-3" style="height: 6px;">
-                        <div class="progress-bar bg-info" style="width: {% widthratio images_remaining active_sub.pack.image_corrections_limit 100 %}%"></div>
-                    </div>
-
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="small">Questions chat</span>
-                        <strong>{{ chat_remaining }} / {{ active_sub.pack.chat_questions_limit|default:"∞" }}</strong>
-                    </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar bg-primary" style="width: {% widthratio chat_remaining active_sub.pack.chat_questions_limit 100 %}%"></div>
-                    </div>
+                {% else %}
+                <div class="text-center py-6">
+                    <svg class="w-10 h-10 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    <p class="text-sm text-gray-500">Aucun abonnement actif</p>
                 </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
 
-        <!-- Informations détaillées -->
-        <div class="col-xl-8">
-            <!-- Infos compte -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <h6 class="mb-3 border-bottom pb-2">Informations du compte</h6>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <table class="table table-borderless small">
-                                <tr><td><strong>ID:</strong></td><td>{{ user.id }}</td></tr>
-                                <tr><td><strong>Téléphone:</strong></td><td>{{ user.phone_number }}</td></tr>
-                                <tr><td><strong>Nom:</strong></td><td>{{ user.first_name|default:"—" }}</td></tr>
-                                <tr><td><strong>Prénom:</strong></td><td>{{ user.last_name|default:"—" }}</td></tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <table class="table table-borderless small">
-                                <tr><td><strong>Inscrit le:</strong></td><td>{{ user.date_joined|date:"d/m/Y" }}</td></tr>
-                                <tr><td><strong>Niveau:</strong></td><td>{{ user.school_level|default:"—" }}</td></tr>
-                                <tr><td><strong>Pays:</strong></td><td>{{ user.country|default:"—" }}</td></tr>
-                                <tr><td><strong>Établissement:</strong></td><td>{{ user.institution|default:"—" }}</td></tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+        <!-- Recent Actions -->
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-base font-semibold text-gray-900">Activite recente</h3>
             </div>
-
-            <!-- Abonnement actif -->
-            {% if active_sub %}
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-body">
-                    <h6 class="mb-3 border-bottom pb-2">Abonnement actif</h6>
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h5 class="mb-1">{{ active_sub.pack.name }}</h5>
-                            <p class="text-muted mb-0">
-                                Valable jusqu'au {{ active_sub.expires_at|date:"d/m/Y" }}
-                            </p>
+            <div class="p-6">
+                {% if recent_actions %}
+                <div class="space-y-4">
+                    {% for action in recent_actions %}
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-{{ action.color }}-100">
+                            <span class="text-sm">{{ action.icon }}</span>
                         </div>
-                        <div class="col-md-4 text-end">
-                            <span class="badge bg-success fs-6">ACTIF</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900">{{ action.title }}</p>
+                            <p class="text-xs text-gray-500">{{ action.desc }}</p>
+                            <p class="text-xs text-gray-400 mt-0.5">{{ action.date|date:"d/m/Y H:i" }}</p>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
-            </div>
-            {% endif %}
-
-            <!-- Activité récente -->
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-body">
-                    <h6 class="mb-3 border-bottom pb-2">Activité récente</h6>
-                    <div class="timeline">
-                        {% for action in recent_actions %}
-                        <div class="timeline-item">
-                            <div class="timeline-marker bg-{{ action.color }}"></div>
-                            <div class="timeline-content">
-                                <h6 class="timeline-title">
-                                    <i class="mdi {{ action.icon }} me-1"></i> {{ action.title }}
-                                </h6>
-                                <p class="timeline-text text-muted small">{{ action.desc }}</p>
-                                <small class="text-muted">{{ action.date|date:"d/m H:i" }}</small>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <p class="text-muted text-center py-3">Aucune activité récente</p>
-                        {% endfor %}
-                    </div>
+                {% else %}
+                <div class="text-center py-6">
+                    <svg class="w-10 h-10 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p class="text-sm text-gray-500">Aucune activite recente</p>
                 </div>
+                {% endif %}
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Subscription History -->
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-base font-semibold text-gray-900">Historique des abonnements</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pack</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date debut</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date fin</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Corrections restantes</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Chat restant</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-100">
+                {% for sub in subscriptions %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ sub.pack.name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ sub.start_date|date:"d/m/Y" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ sub.end_date|date:"d/m/Y" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ sub.image_corrections_remaining }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ sub.chat_questions_remaining }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if sub.is_active %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Actif</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Expire</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
+                        Aucun abonnement enregistre.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-
-function deleteUser(userId) {
-    // Confirmation
-    if (!confirm('Supprimer cet utilisateur ? Cette action est irréversible.')) {
+function deleteUser(userId, userName) {
+    if (!confirm('Etes-vous sur de vouloir supprimer l\'utilisateur "' + userName + '" ? Cette action est irreversible.')) {
         return;
     }
 
-    // Envoi AJAX
-    fetch("{% url 'custom_admin:user_delete' 0 %}".replace('0', userId), {
+    const csrfToken = '{{ csrf_token }}';
+    const url = '/custom-admin/user/' + userId + '/delete/';
+
+    fetch(url, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify({})
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            // Toast personnalisé (si tu as CorrigeMoiAdmin.showToast)
-            if (window.CorrigeMoiAdmin && typeof CorrigeMoiAdmin.showToast === 'function') {
-                CorrigeMoiAdmin.showToast(data.message, 'success');
-            } else {
-                alert(data.message);
-            }
-
-            // Redirection après 1.2s
-            setTimeout(() => {
-                window.location.href = "{% url 'custom_admin:users' %}";
-            }, 1000);
+    .then(response => {
+        if (response.ok || response.redirected) {
+            window.location.href = "{% url 'custom_admin:users' %}";
         } else {
-            // Erreur
-            if (window.CorrigeMoiAdmin && typeof CorrigeMoiAdmin.showToast === 'function') {
-                CorrigeMoiAdmin.showToast(data.message || 'Erreur lors de la suppression', 'error');
-            } else {
-                alert(data.message || 'Erreur');
-            }
+            alert('Erreur lors de la suppression de l\'utilisateur.');
         }
     })
-    .catch(() => {
-        if (window.CorrigeMoiAdmin && typeof CorrigeMoiAdmin.showToast === 'function') {
-            CorrigeMoiAdmin.showToast('Erreur réseau', 'error');
-        } else {
-            alert('Erreur réseau');
-        }
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors de la suppression de l\'utilisateur.');
     });
 }
-function resetPassword(id) { showToast('Email de réinitialisation envoyé', 'success'); }
-function sendEmail(id) { showToast('Email envoyé', 'success'); }
 </script>
-
-<style>
-.timeline { position: relative; padding-left: 40px; }
-.timeline::before { content: ''; position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; background: #e9ecef; }
-.timeline-item { position: relative; margin-bottom: 20px; }
-.timeline-marker { position: absolute; left: -42px; top: 2px; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; }
-.timeline-content { margin-left: 10px; }
-.timeline-title { margin: 0; font-weight: 600; font-size: 0.95rem; }
-.timeline-text { margin: 4px 0 0; font-size: 0.85rem; }
-.avatar-lg { width: 80px; height: 80px; }
-</style>
 {% endblock %}

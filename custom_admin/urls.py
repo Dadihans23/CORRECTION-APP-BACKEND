@@ -47,4 +47,20 @@ urlpatterns = [
     path('reports/export-all/', views.export_all_reports, name='export_all_reports'),
     path('settings/', views.admin_settings, name='settings'),
 
+    # ===============================================
+    # HISTORIQUE CORRECTIONS
+    # ===============================================
+    path('corrections/', views.admin_corrections_history, name='corrections'),
+    path('correction/<int:pk>/', views.admin_correction_detail, name='correction_detail'),
+
+    # ===============================================
+    # CONVERSATIONS CHATBOT
+    # ===============================================
+    path('conversations/', views.admin_conversations, name='conversations'),
+    path('conversation/<uuid:session_id>/', views.admin_conversation_detail, name='conversation_detail'),
+
+    # ===============================================
+    # PAIEMENTS & REVENUS
+    # ===============================================
+    path('payments/', views.admin_payments, name='payments'),
 ]

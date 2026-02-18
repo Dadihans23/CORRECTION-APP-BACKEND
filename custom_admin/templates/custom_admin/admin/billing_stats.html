@@ -1,119 +1,238 @@
-{% extends 'custom_admin/base_admin.html' %}
-{% load static %}
+{% extends "custom_admin/base_admin.html" %}
 
-{% block title %}Facturation & Revenus - Corrige Moi Admin{% endblock %}
+{% block title %}Stats Facturation{% endblock %}
+{% block page_title %}Stats Facturation{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title mb-4">
-                <h2 class="fw-bold">Facturation & Revenus</h2>
-                <p class="text-muted">Suivi financier complet de la plateforme</p>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+    <!-- Revenue totale -->
+    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-medium text-gray-500">Revenue totale</span>
+            <div class="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-gray-900">{{ billing.total_revenue|floatformat:0 }} FCFA</p>
+    </div>
+
+    <!-- Ce mois -->
+    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-medium text-gray-500">Ce mois</span>
+            <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-gray-900">{{ billing.this_month|floatformat:0 }} FCFA</p>
+    </div>
+
+    <!-- Mois dernier -->
+    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-medium text-gray-500">Mois dernier</span>
+            <div class="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-gray-900">{{ billing.last_month|floatformat:0 }} FCFA</p>
+    </div>
+
+    <!-- Croissance -->
+    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-medium text-gray-500">Croissance</span>
+            <div class="w-9 h-9 rounded-lg {% if billing.growth_rate >= 0 %}bg-green-50{% else %}bg-red-50{% endif %} flex items-center justify-center">
+                {% if billing.growth_rate >= 0 %}
+                <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                {% else %}
+                <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
+                {% endif %}
+            </div>
+        </div>
+        <p class="text-2xl font-bold {% if billing.growth_rate >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+            {% if billing.growth_rate >= 0 %}+{% endif %}{{ billing.growth_rate|floatformat:1 }}%
+        </p>
+    </div>
+</div>
+
+<!-- Monthly Revenue Chart -->
+<div class="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Revenus mensuels</h2>
+    <div class="h-72">
+        <canvas id="monthlyRevenueChart"></canvas>
+    </div>
+</div>
+
+<!-- Two columns: Subscription Stats + Top Revenue Users -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Subscription Stats Doughnut -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Repartition des abonnements</h2>
+        <div class="flex items-center justify-center h-64">
+            <canvas id="subscriptionChart"></canvas>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-4">
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-brand-500"></span>
+                <span class="text-sm text-gray-600">Actifs: {{ billing.subscription_stats.active }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                <span class="text-sm text-gray-600">Expires: {{ billing.subscription_stats.expired }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
+                <span class="text-sm text-gray-600">En attente: {{ billing.subscription_stats.pending }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-blue-400"></span>
+                <span class="text-sm text-gray-600">Essai gratuit: {{ billing.subscription_stats.free_trial }}</span>
             </div>
         </div>
     </div>
 
-    <!-- KPI -->
-    <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center">
-                    <div class="flex-fill">
-                        <h4 class="mb-0 fw-bold">{{ billing.total_revenue|floatformat:0 }} CFA</h4>
-                        <p class="text-muted small mb-0">Revenus totaux</p>
-                    </div>
-                    <i class="mdi mdi-currency-usd fs-2 text-success"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center">
-                    <div class="flex-fill">
-                        <h4 class="mb-0 fw-bold">{{ billing.this_month_revenue|floatformat:0 }} CFA</h4>
-                        <p class="text-muted small mb-0">Ce mois</p>
-                    </div>
-                    <i class="mdi mdi-trending-up fs-2 {% if billing.growth_positive %}text-success{% else %}text-danger{% endif %}"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center">
-                    <div class="flex-fill">
-                        <h4 class="mb-0 fw-bold">{% if billing.growth_positive %}+{% endif %}{{ billing.growth_rate }}%</h4>
-                        <p class="text-muted small mb-0">vs mois dernier</p>
-                    </div>
-                    <i class="mdi mdi-chart-line fs-2 {% if billing.growth_positive %}text-success{% else %}text-danger{% endif %}"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center">
-                    <div class="flex-fill">
-                        <h4 class="mb-0 fw-bold">{{ billing.active_subs }}</h4>
-                        <p class="text-muted small mb-0">Abonnés actifs</p>
-                    </div>
-                    <i class="mdi mdi-account-star fs-2 text-primary"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Évolution mensuelle des revenus</h5>
-                </div>
-                <div class="card-body">
-                    <div id="revenueChart"></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Top 5 clients (revenus)</h5>
-                </div>
-                <div class="card-body">
-                    {% for u in billing.top_revenue_users %}
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <strong>{{ u.user__phone_number }}</strong><br>
-                            <small class="text-muted">{{ u.user__first_name }} {{ u.user__last_name }}</small>
-                        </div>
-                        <strong class="text-success">{{ u.total_spent|floatformat:0 }} CFA</strong>
-                    </div>
+    <!-- Top 5 Users by Revenue -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Top 5 utilisateurs par revenu</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-100">
+                        <th class="text-left py-3 px-3 font-medium text-gray-500">#</th>
+                        <th class="text-left py-3 px-3 font-medium text-gray-500">Utilisateur</th>
+                        <th class="text-right py-3 px-3 font-medium text-gray-500">Revenu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in billing.top_revenue_users %}
+                    <tr class="border-b border-gray-50 hover:bg-gray-50">
+                        <td class="py-3 px-3 text-gray-500">{{ forloop.counter }}</td>
+                        <td class="py-3 px-3 font-medium text-gray-900">{{ item.user }}</td>
+                        <td class="py-3 px-3 text-right font-semibold text-gray-900">{{ item.revenue|floatformat:0 }} FCFA</td>
+                    </tr>
                     {% empty %}
-                    <p class="text-muted">Aucune donnée</p>
+                    <tr>
+                        <td colspan="3" class="py-6 text-center text-gray-400">Aucune donnee disponible</td>
+                    </tr>
                     {% endfor %}
-                </div>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Methods Breakdown -->
+<div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Methodes de paiement</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="flex items-center gap-4 p-4 rounded-lg bg-orange-50 border border-orange-100">
+            <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Mobile Money</p>
+                <p class="text-xl font-bold text-gray-900">{{ billing.payment_methods.mobile_money }}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 p-4 rounded-lg bg-blue-50 border border-blue-100">
+            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Carte bancaire</p>
+                <p class="text-xl font-bold text-gray-900">{{ billing.payment_methods.card }}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 p-4 rounded-lg bg-green-50 border border-green-100">
+            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Virement bancaire</p>
+                <p class="text-xl font-bold text-gray-900">{{ billing.payment_methods.bank }}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 p-4 rounded-lg bg-purple-50 border border-purple-100">
+            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Admin</p>
+                <p class="text-xl font-bold text-gray-900">{{ billing.payment_methods.admin }}</p>
             </div>
         </div>
     </div>
-
-   
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'custom_admin/js/plugins/apexcharts.min.js' %}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const options = {
-        series: [{ name: 'Revenus', data: {{ billing.monthly_revenue|safe }} }],
-        chart: { type: 'area', height: 300, toolbar: { show: false } },
-        colors: ['#10b981'],
-        xaxis: { categories: {{ billing.monthly_labels|safe }} },
-        yaxis: { labels: { formatter: v => v.toLocaleString() + ' CFA' } },
-        fill: { opacity: 0.1 },
-        stroke: { width: 2 },
-        dataLabels: { enabled: false }
-    };
-    new ApexCharts(document.querySelector("#revenueChart"), options).render();
+document.addEventListener('DOMContentLoaded', function() {
+    // Monthly Revenue Bar Chart
+    const monthlyCtx = document.getElementById('monthlyRevenueChart').getContext('2d');
+    new Chart(monthlyCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ billing.monthly_labels|safe }},
+            datasets: [{
+                label: 'Revenus (FCFA)',
+                data: {{ billing.monthly_revenue|safe }},
+                backgroundColor: 'rgba(2, 161, 149, 0.8)',
+                borderColor: '#02A195',
+                borderWidth: 1,
+                borderRadius: 6,
+                barPercentage: 0.6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.04)' },
+                    ticks: { font: { size: 12 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 12 } }
+                }
+            }
+        }
+    });
+
+    // Subscription Stats Doughnut
+    const subCtx = document.getElementById('subscriptionChart').getContext('2d');
+    new Chart(subCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Actifs', 'Expires', 'En attente', 'Essai gratuit'],
+            datasets: [{
+                data: [
+                    {{ billing.subscription_stats.active }},
+                    {{ billing.subscription_stats.expired }},
+                    {{ billing.subscription_stats.pending }},
+                    {{ billing.subscription_stats.free_trial }}
+                ],
+                backgroundColor: ['#02A195', '#f87171', '#facc15', '#60a5fa'],
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
 });
 </script>
 {% endblock %}

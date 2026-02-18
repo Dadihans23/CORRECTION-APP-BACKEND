@@ -42,7 +42,7 @@ from django.contrib.auth import (
     update_session_auth_hash,
     decorators as auth_decorators,
 )
-from django.contrib.auth.models import User
+from django.db.models import Max
 from django.contrib.contenttypes.models import ContentType
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
@@ -181,7 +181,7 @@ def admin_dashboard(request):
         'revenue_period': int(revenue_period),
         'total_revenue': int(total_revenue),
 
-        'date_range': date_range,
+        'date_range': json.dumps(date_range),
         'top_packs': list(top_packs),
 
         'start_date': start_date.strftime('%Y-%m-%d'),
@@ -815,8 +815,8 @@ def admin_billing_stats(request):
     growth_rate = round(((this_month_revenue - last_month_revenue) / last_month_revenue * 100), 1) if last_month_revenue > 0 else 0
 
     billing_data = {
-        'monthly_revenue': monthly_revenue,
-        'monthly_labels': monthly_labels,
+        'monthly_revenue': json.dumps(monthly_revenue),
+        'monthly_labels': json.dumps(monthly_labels),
         'top_revenue_users': top_users_formatted,
         'payment_methods': payment_methods,
         'subscription_stats': subscription_stats,
@@ -940,12 +940,13 @@ def admin_user_stats(request):
             'active_users': active_users,
             'new_this_month': new_this_month,
             'user_growth_data': user_growth_data,
+            'user_growth_data_json': json.dumps(user_growth_data),
             'user_retention': user_retention,
             'top_users_by_usage': top_users_formatted,
             'user_distribution': user_distribution,
             'user_distribution_with_percentage': user_distribution_with_percentage,
-            'pack_names': list(user_distribution.keys()),
-            'pack_counts': list(user_distribution.values()),
+            'pack_names': json.dumps(list(user_distribution.keys())),
+            'pack_counts': json.dumps(list(user_distribution.values())),
         }
     }
 
@@ -1039,10 +1040,10 @@ def admin_analytics(request):
     context = {
         'analytics': {
             'period': period,
-            'day_labels': day_labels,
-            'daily_images': daily_images,
-            'daily_chat': daily_chat,
-            'daily_revenue': daily_revenue,
+            'day_labels': json.dumps(day_labels),
+            'daily_images': json.dumps(daily_images),
+            'daily_chat': json.dumps(daily_chat),
+            'daily_revenue': json.dumps(daily_revenue),
             'top_packs': top_packs_list,
             'user_growth': {
                 'this_month': new_users_this_month,
@@ -1054,12 +1055,12 @@ def admin_analytics(request):
                 'total_actions': total_actions,
             },
             'usage': {
-                'labels': ['Corrections photo', 'Questions chat'],
-                'series': [images_total, chat_total]
+                'labels': json.dumps(['Corrections photo', 'Questions chat']),
+                'series': json.dumps([images_total, chat_total])
             },
             'levels': {
-                'labels': level_labels,
-                'series': level_values
+                'labels': json.dumps(level_labels),
+                'series': json.dumps(level_values)
             },
             'live': {
                 'active_users': live_users,
@@ -1211,15 +1212,15 @@ def generate_users_report(request):
 
     active_users = ImageCorrection.objects.filter(
         created_at__gte=timezone.now() - timedelta(days=30)
-    ).values('user__phone_number', 'user__date_joined', 'user__subscription__pack__name', 'user__subscription__image_corrections_remaining').distinct()
+    ).values('user__phone_number', 'user__date_joined', 'user__subscriptions__pack__name', 'user__subscriptions__image_corrections_remaining').distinct()
 
     for u in active_users:
         writer.writerow([
             u['user__phone_number'],
             u['user__date_joined'],
             'Actif',
-            u['user__subscription__pack__name'] or 'Gratuit',
-            u['user__subscription__image_corrections_remaining'] or 0
+            u['user__subscriptions__pack__name'] or 'Gratuit',
+            u['user__subscriptions__image_corrections_remaining'] or 0
         ])
 
     return response
@@ -1394,83 +1395,226 @@ def admin_settings(request):
 
 
 
+# =====================================================
+# 📸 HISTORIQUE DES CORRECTIONS
+# =====================================================
 
-# @login_required
-# def admin_settings(request):
-#     """Vue PARAMÈTRES 100% RÉELLS + SAUVEGARDE"""
-#     settings = SiteSettings.get_instance()
-    
-#     if request.method == 'POST':
-#         # SAUVEGARDE RÉELLE DE TOUS LES CHAMPS
-#         settings.site_name = request.POST.get('site_name', settings.site_name)
-#         settings.maintenance_mode = request.POST.get('maintenance_mode') == 'on'
-#         settings.allow_registrations = request.POST.get('allow_registrations') == 'on'
-#         settings.email_notifications = request.POST.get('email_notifications') == 'on'
-#         settings.max_api_calls_per_hour = int(request.POST.get('max_api_calls_per_hour', settings.max_api_calls_per_hour))
-#         settings.default_character_limit = int(request.POST.get('default_character_limit', settings.default_character_limit))
-#         settings.timezone = request.POST.get('timezone', settings.timezone)
-#         settings.default_language = request.POST.get('default_language', settings.default_language)
-#         settings.date_format = request.POST.get('date_format', settings.date_format)
-#         settings.smtp_server = request.POST.get('smtp_server', settings.smtp_server)
-#         settings.smtp_port = int(request.POST.get('smtp_port', settings.smtp_port))
-#         settings.smtp_email = request.POST.get('smtp_email', settings.smtp_email)
-#         settings.smtp_name = request.POST.get('smtp_name', settings.smtp_name)
-#         settings.session_duration = int(request.POST.get('session_duration', settings.session_duration))
-#         settings.max_login_attempts = int(request.POST.get('max_login_attempts', settings.max_login_attempts))
-#         settings.default_theme = request.POST.get('default_theme', settings.default_theme)
-#         settings.primary_color = request.POST.get('primary_color', settings.primary_color)
-#         settings.compact_mode = request.POST.get('compact_mode') == 'on'
-#         settings.auto_backup = request.POST.get('auto_backup') == 'on'
-#         settings.backup_frequency = request.POST.get('backup_frequency', settings.backup_frequency)
-#         settings.password_require_uppercase = request.POST.get('password_require_uppercase') == 'on'
-#         settings.password_require_numbers = request.POST.get('password_require_numbers') == 'on'
-#         settings.password_require_symbols = request.POST.get('password_require_symbols') == 'on'
-#         settings.two_factor_auth = request.POST.get('two_factor_auth') == 'on'
-#         settings.tts_enabled = request.POST.get('tts_enabled') == 'on'
-#         settings.translate_enabled = request.POST.get('translate_enabled') == 'on'
-#         settings.detect_enabled = request.POST.get('detect_enabled') == 'on'
-#         settings.voice_clone_enabled = request.POST.get('voice_clone_enabled') == 'on'
-        
-#         settings.save()
-#         messages.success(request, '✅ Paramètres sauvegardés avec succès!')
-#         return redirect('custom_admin:settings')
-    
-#     # DONNÉES RÉELLES POUR LE TEMPLATE
-#     settings_data = {
-#         'site_name': settings.site_name,
-#         'maintenance_mode': settings.maintenance_mode,
-#         'allow_registrations': settings.allow_registrations,
-#         'email_notifications': settings.email_notifications,
-#         'max_api_calls_per_hour': settings.max_api_calls_per_hour,
-#         'default_character_limit': settings.default_character_limit,
-#         'timezone': settings.timezone,
-#         'default_language': settings.default_language,
-#         'date_format': settings.date_format,
-#         'smtp_server': settings.smtp_server,
-#         'smtp_port': settings.smtp_port,
-#         'smtp_email': settings.smtp_email,
-#         'smtp_name': settings.smtp_name,
-#         'session_duration': settings.session_duration,
-#         'max_login_attempts': settings.max_login_attempts,
-#         'default_theme': settings.default_theme,
-#         'primary_color': settings.primary_color,
-#         'compact_mode': settings.compact_mode,
-#         'auto_backup': settings.auto_backup,
-#         'backup_frequency': settings.backup_frequency,
-#         'master_api_key': settings.master_api_key,
-#         'password_require_uppercase': settings.password_require_uppercase,
-#         'password_require_numbers': settings.password_require_numbers,
-#         'password_require_symbols': settings.password_require_symbols,
-#         'two_factor_auth': settings.two_factor_auth,
-#         'tts_enabled': settings.tts_enabled,
-#         'translate_enabled': settings.translate_enabled,
-#         'detect_enabled': settings.detect_enabled,
-#         'voice_clone_enabled': settings.voice_clone_enabled,
-#         'updated_at': settings.updated_at.strftime('%d/%m/%Y %H:%M'),
-#     }
-    
-#     return render(request, 'custom_admin/admin/settings.html', {'settings': settings_data})
+@login_required
+def admin_corrections_history(request):
+    if not request.user.is_staff:
+        return render(request, 'custom_admin/403.html', status=403)
+
+    corrections = CorrectionHistory.objects.select_related('user').order_by('-created_at')
+
+    search     = request.GET.get('q', '')
+    domain     = request.GET.get('domain', '')
+    level      = request.GET.get('level', '')
+    success    = request.GET.get('success', '')
+    start_date = request.GET.get('start_date', '')
+    end_date   = request.GET.get('end_date', '')
+
+    if search:
+        corrections = corrections.filter(
+            Q(user__phone_number__icontains=search) |
+            Q(extracted_text__icontains=search) |
+            Q(user_domain__icontains=search)
+        )
+    if domain:
+        corrections = corrections.filter(user_domain__icontains=domain)
+    if level:
+        corrections = corrections.filter(user_level__icontains=level)
+    if success == 'true':
+        corrections = corrections.filter(success=True)
+    elif success == 'false':
+        corrections = corrections.filter(success=False)
+    if start_date:
+        try:
+            corrections = corrections.filter(
+                created_at__date__gte=datetime.strptime(start_date, '%Y-%m-%d').date()
+            )
+        except ValueError:
+            pass
+    if end_date:
+        try:
+            corrections = corrections.filter(
+                created_at__date__lte=datetime.strptime(end_date, '%Y-%m-%d').date()
+            )
+        except ValueError:
+            pass
+
+    total_count   = CorrectionHistory.objects.count()
+    success_count = CorrectionHistory.objects.filter(success=True).count()
+    today_count   = CorrectionHistory.objects.filter(created_at__date=timezone.now().date()).count()
+
+    domains = CorrectionHistory.objects.values_list('user_domain', flat=True).distinct().order_by('user_domain')
+    levels  = CorrectionHistory.objects.values_list('user_level', flat=True).distinct().order_by('user_level')
+
+    paginator = Paginator(corrections, 20)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'custom_admin/admin/corrections.html', {
+        'page_obj': page_obj,
+        'total_count': total_count,
+        'success_count': success_count,
+        'today_count': today_count,
+        'domains': domains,
+        'levels': levels,
+        'search': search,
+        'domain': domain,
+        'level': level,
+        'success': success,
+        'start_date': start_date,
+        'end_date': end_date,
+    })
 
 
+@login_required
+def admin_correction_detail(request, pk):
+    if not request.user.is_staff:
+        return render(request, 'custom_admin/403.html', status=403)
 
-    
+    correction = get_object_or_404(CorrectionHistory.objects.select_related('user'), pk=pk)
+    return render(request, 'custom_admin/admin/correction_detail.html', {
+        'correction': correction,
+    })
+
+
+# =====================================================
+# 💬 CONVERSATIONS CHATBOT
+# =====================================================
+
+@login_required
+def admin_conversations(request):
+    if not request.user.is_staff:
+        return render(request, 'custom_admin/403.html', status=403)
+
+    sessions = ChatSession.objects.select_related('user').annotate(
+        message_count=Count('messages')
+    ).order_by('-created_at')
+
+    search = request.GET.get('q', '')
+    if search:
+        sessions = sessions.filter(
+            Q(user__phone_number__icontains=search) |
+            Q(title__icontains=search)
+        )
+
+    total_sessions  = ChatSession.objects.count()
+    total_messages  = ChatMessage.objects.count()
+    active_sessions = ChatSession.objects.filter(is_active=True).count()
+    today_sessions  = ChatSession.objects.filter(created_at__date=timezone.now().date()).count()
+
+    paginator = Paginator(sessions, 20)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'custom_admin/admin/conversations.html', {
+        'page_obj': page_obj,
+        'total_sessions': total_sessions,
+        'total_messages': total_messages,
+        'active_sessions': active_sessions,
+        'today_sessions': today_sessions,
+        'search': search,
+    })
+
+
+@login_required
+def admin_conversation_detail(request, session_id):
+    if not request.user.is_staff:
+        return render(request, 'custom_admin/403.html', status=403)
+
+    session  = get_object_or_404(ChatSession.objects.select_related('user'), id=session_id)
+    messages_qs = session.messages.order_by('created_at')
+    return render(request, 'custom_admin/admin/conversation_detail.html', {
+        'session': session,
+        'messages': messages_qs,
+    })
+
+
+# =====================================================
+# 💰 PAIEMENTS & REVENUS
+# =====================================================
+
+@login_required
+def admin_payments(request):
+    if not request.user.is_staff:
+        return render(request, 'custom_admin/403.html', status=403)
+
+    transactions = Transaction.objects.select_related('user', 'pack').order_by('-created_at')
+
+    search     = request.GET.get('q', '')
+    tx_type    = request.GET.get('type', '')
+    start_date = request.GET.get('start_date', '')
+    end_date   = request.GET.get('end_date', '')
+
+    if search:
+        transactions = transactions.filter(
+            Q(user__phone_number__icontains=search) |
+            Q(pack__name__icontains=search)
+        )
+    if tx_type:
+        transactions = transactions.filter(transaction_type=tx_type)
+    if start_date:
+        try:
+            transactions = transactions.filter(
+                created_at__date__gte=datetime.strptime(start_date, '%Y-%m-%d').date()
+            )
+        except ValueError:
+            pass
+    if end_date:
+        try:
+            transactions = transactions.filter(
+                created_at__date__lte=datetime.strptime(end_date, '%Y-%m-%d').date()
+            )
+        except ValueError:
+            pass
+
+    now = timezone.now()
+
+    total_revenue      = Transaction.objects.aggregate(t=Sum('price_paid'))['t'] or 0
+    this_month_revenue = Transaction.objects.filter(
+        created_at__year=now.year, created_at__month=now.month
+    ).aggregate(t=Sum('price_paid'))['t'] or 0
+    total_tx  = Transaction.objects.count()
+    today_tx  = Transaction.objects.filter(created_at__date=now.date()).count()
+
+    # Graphique : 6 derniers mois
+    monthly_data = []
+    for i in range(5, -1, -1):
+        month_start = (now.replace(day=1) - timedelta(days=30 * i)).replace(day=1)
+        rev = Transaction.objects.filter(
+            created_at__year=month_start.year,
+            created_at__month=month_start.month
+        ).aggregate(t=Sum('price_paid'))['t'] or 0
+        monthly_data.append({
+            'label': month_start.strftime('%b %Y'),
+            'revenue': float(rev),
+        })
+
+    paginator = Paginator(transactions, 20)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'custom_admin/admin/payments.html', {
+        'page_obj': page_obj,
+        'total_revenue': int(total_revenue),
+        'this_month_revenue': int(this_month_revenue),
+        'total_tx': total_tx,
+        'today_tx': today_tx,
+        'monthly_data': json.dumps(monthly_data),
+        'search': search,
+        'tx_type': tx_type,
+        'start_date': start_date,
+        'end_date': end_date,
+    })
+
+
+# =====================================================
+# LANDING PAGE (PUBLIC)
+# =====================================================
+
+def landing_page(request):
+    packs = Pack.objects.filter(is_active=True).order_by('price')
+    site = SiteSettings.get_instance()
+    return render(request, 'custom_admin/landing.html', {
+        'packs': packs,
+        'site': site,
+    })

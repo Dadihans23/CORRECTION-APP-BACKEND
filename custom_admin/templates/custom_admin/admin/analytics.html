@@ -1,208 +1,244 @@
-{% extends 'custom_admin/base_admin.html' %}
-{% load static %}
+{% extends "custom_admin/base_admin.html" %}
 
-{% block title %}Analytics - Corrige Moi Admin{% endblock %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics{% endblock %}
 
-{% block extra_css %}
-<link type="text/css" href="{% static 'custom_admin/css/plugins/apexcharts.css' %}" rel="stylesheet">
+{% block header_actions %}
+<form method="GET" class="flex items-center gap-2">
+    <select name="period" onchange="this.form.submit()" class="rounded-lg border-gray-300 text-sm px-3 py-2 border focus:border-brand-500 focus:ring-brand-500">
+        <option value="7" {% if analytics.period == 7 %}selected{% endif %}>7 jours</option>
+        <option value="30" {% if analytics.period == 30 %}selected{% endif %}>30 jours</option>
+        <option value="90" {% if analytics.period == 90 %}selected{% endif %}>90 jours</option>
+    </select>
+</form>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title mb-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="fw-bold mb-2">Analytics</h2>
-                        <p class="text-muted mb-0">Suivi en temps réel de la plateforme</p>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <select class="form-select" id="periodSelect" style="width: 160px;">
-                            <option value="7" {% if analytics.period == 7 %}selected{% endif %}>7 jours</option>
-                            <option value="30" {% if analytics.period == 30 %}selected{% endif %}>30 jours</option>
-                            <option value="90" {% if analytics.period == 90 %}selected{% endif %}>90 jours</option>
-                        </select>
-                        <button class="btn btn-primary" onclick="refreshAnalytics()">
-                            <i class="mdi mdi-refresh"></i> Actualiser
-                        </button>
-                    </div>
-                </div>
-            </div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-green-500">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Revenue Totale</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ analytics.kpi.total_revenue|floatformat:0 }} <span class="text-sm font-normal text-gray-500">CFA</span></p>
+    </div>
+    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-brand-500">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Nouveaux utilisateurs</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ analytics.user_growth.this_month }}</p>
+        <p class="text-xs mt-1 {% if analytics.user_growth.growth_rate >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+            {% if analytics.user_growth.growth_rate >= 0 %}+{% endif %}{{ analytics.user_growth.growth_rate }}% vs mois dernier
+        </p>
+    </div>
+    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-blue-500">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Retention 30j</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ analytics.kpi.retention_rate }}%</p>
+    </div>
+    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-purple-500">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Actions</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900">{{ analytics.kpi.total_actions }}</p>
+    </div>
+</div>
+
+<!-- Live Badge -->
+<div class="flex items-center gap-4 mb-6">
+    <div class="inline-flex items-center gap-2 bg-white rounded-lg border border-gray-100 shadow-sm px-4 py-2">
+        <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+        </span>
+        <span class="text-sm text-gray-700"><strong>{{ analytics.live.active_users }}</strong> utilisateur(s) actif(s)</span>
+    </div>
+    <div class="inline-flex items-center gap-2 bg-white rounded-lg border border-gray-100 shadow-sm px-4 py-2">
+        <span class="text-sm text-gray-700"><strong>{{ analytics.live.actions_last_10min }}</strong> actions (10 min)</span>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Activity Chart (2/3) -->
+    <div class="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Activite quotidienne</h3>
+        <div style="height: 300px;">
+            <canvas id="activityChart"></canvas>
         </div>
     </div>
 
-    <!-- KPI Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="fw-bold text-primary">{{ analytics.user_growth.this_month }}</h4>
-                            <p class="text-muted small">Nouveaux utilisateurs</p>
-                            <small class="text-success">
-                                <i class="mdi mdi-arrow-up"></i> +{{ analytics.user_growth.growth_rate }}%
-                            </small>
-                        </div>
-                        <i class="mdi mdi-account-plus text-primary fs-3"></i>
-                    </div>
-                </div>
-            </div>
+    <!-- Usage Pie (1/3) -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Repartition par type</h3>
+        <div style="height: 300px;">
+            <canvas id="usageChart"></canvas>
         </div>
+    </div>
+</div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="fw-bold text-success">{{ analytics.kpi.total_revenue|floatformat:0 }} CFA</h4>
-                            <p class="text-muted small">Revenus totaux</p>
-                        </div>
-                        <i class="mdi mdi-currency-usd text-success fs-3"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="fw-bold text-info">{{ analytics.kpi.retention_rate }}%</h4>
-                            <p class="text-muted small">Rétention 30j</p>
-                        </div>
-                        <i class="mdi mdi-account-check text-info fs-3"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="fw-bold text-warning">{{ analytics.live.active_users }}</h4>
-                            <p class="text-muted small">En ligne (5 min)</p>
-                            <span class="badge bg-danger small">LIVE</span>
-                        </div>
-                        <i class="mdi mdi-circle text-danger fs-4 blink"></i>
-                    </div>
-                </div>
-            </div>
+<!-- Revenue + Levels -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Revenue Chart -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Revenus quotidiens (CFA)</h3>
+        <div style="height: 260px;">
+            <canvas id="revenueChart"></canvas>
         </div>
     </div>
 
-    <!-- Graphiques -->
-    <div class="row mb-4">
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5>Activité quotidienne</h5>
-                </div>
-                <div class="card-body">
-                    <div id="activityChart"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white">
-                    <h5>Top Packs</h5>
-                </div>
-                <div class="card-body">
-                    {% for pack in analytics.top_packs %}
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="small text-muted">{{ pack.name }}</span>
-                        <strong>{{ pack.revenue|floatformat:0 }} CFA</strong>
-                    </div>
-                    <div class="progress mb-3" style="height: 5px;">
-                        <div class="progress-bar bg-success" style="width: {% widthratio pack.revenue analytics.kpi.total_revenue 100 %}%"></div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+    <!-- Levels Chart -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Niveaux scolaires</h3>
+        <div style="height: 260px;">
+            <canvas id="levelsChart"></canvas>
         </div>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5>Utilisation par type</h5>
-                </div>
-                <div class="card-body">
-                    <div id="usageChart"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5>Niveau scolaire</h5>
-                </div>
-                <div class="card-body">
-                    <div id="levelChart"></div>
-                </div>
-            </div>
-        </div>
+<!-- Top Packs -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="text-sm font-semibold text-gray-900">Top Packs ({{ analytics.period }} jours)</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Pack</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Ventes</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Revenus</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for pack in analytics.top_packs %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ pack.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ pack.sales }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ pack.revenue|floatformat:0 }} CFA</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500">Aucune vente sur cette periode.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'custom_admin/js/plugins/apexcharts.min.js' %}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const data = {{ analytics|safe }};
+const a = {
+    day_labels: {{ analytics.day_labels|safe }},
+    daily_images: {{ analytics.daily_images|safe }},
+    daily_chat: {{ analytics.daily_chat|safe }},
+    daily_revenue: {{ analytics.daily_revenue|safe }},
+    usage: { labels: {{ analytics.usage.labels|safe }}, series: {{ analytics.usage.series|safe }} },
+    levels: { labels: {{ analytics.levels.labels|safe }}, series: {{ analytics.levels.series|safe }} },
+};
 
-    // Graphique principal
-    new ApexCharts(document.querySelector("#activityChart"), {
-        series: [
-            { name: 'Corrections photo', data: data.daily_images },
-            { name: 'Questions chat', data: data.daily_chat },
-            { name: 'Revenus', data: data.daily_revenue }
-        ],
-        chart: { type: 'area', height: 350, toolbar: { show: false } },
-        colors: ['#0d9488', '#3b82f6', '#f59e0b'],
-        stroke: { width: 2, curve: 'smooth' },
-        xaxis: { categories: data.day_labels },
-        yaxis: [{ title: { text: 'Actions' } }, { opposite: true, title: { text: 'Revenus (CFA)' } }],
-        fill: { opacity: 0.1 },
-        legend: { position: 'top' }
-    }).render();
-
-    // Donut usage
-    new ApexCharts(document.querySelector("#usageChart"), {
-        series: data.usage.series,
-        chart: { type: 'donut', height: 300 },
-        labels: data.usage.labels,
-        colors: ['#10b981', '#3b82f6'],
-        legend: { position: 'bottom' }
-    }).render();
-
-    // Niveau scolaire
-    new ApexCharts(document.querySelector("#levelChart"), {
-        series: [{ name: 'Utilisateurs', data: data.levels.series }],
-        chart: { type: 'bar', height: 300 },
-        colors: ['#8b5cf6'],
-        xaxis: { categories: data.levels.labels },
-        plotOptions: { bar: { horizontal: true } }
-    }).render();
+// Activity Chart (Line)
+new Chart(document.getElementById('activityChart').getContext('2d'), {
+    type: 'line',
+    data: {
+        labels: a.day_labels,
+        datasets: [
+            {
+                label: 'Corrections',
+                data: a.daily_images,
+                borderColor: '#02A195',
+                backgroundColor: 'rgba(2, 161, 149, 0.1)',
+                fill: true,
+                tension: 0.35,
+                borderWidth: 2,
+                pointRadius: 2,
+            },
+            {
+                label: 'Chat',
+                data: a.daily_chat,
+                borderColor: '#8B5CF6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                fill: true,
+                tension: 0.35,
+                borderWidth: 2,
+                pointRadius: 2,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 10 } } },
+            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } }
+        }
+    }
 });
 
-function refreshAnalytics() {
-    const period = document.getElementById('periodSelect').value;
-    window.location.href = `?period=${period}`;
-}
-</script>
+// Usage Doughnut
+new Chart(document.getElementById('usageChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+        labels: a.usage.labels,
+        datasets: [{
+            data: a.usage.series,
+            backgroundColor: ['#02A195', '#8B5CF6'],
+            borderWidth: 2,
+            borderColor: '#fff',
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } } }
+    }
+});
 
-<style>
-.blink { animation: blink 1.5s infinite; }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-</style>
+// Revenue Bar
+new Chart(document.getElementById('revenueChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: a.day_labels,
+        datasets: [{
+            label: 'Revenus (CFA)',
+            data: a.daily_revenue,
+            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+            borderColor: '#10B981',
+            borderWidth: 1,
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 10 } } },
+            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } }
+        }
+    }
+});
+
+// Levels Horizontal Bar
+new Chart(document.getElementById('levelsChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: a.levels.labels,
+        datasets: [{
+            data: a.levels.series,
+            backgroundColor: ['#02A195', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981'],
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 10 } } },
+            y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+    }
+});
+</script>
 {% endblock %}
