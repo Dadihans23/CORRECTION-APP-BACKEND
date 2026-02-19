@@ -6,51 +6,51 @@
 {% block content %}
 <!-- Stat Badges -->
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+    <div class="stat-card glass-card rounded-xl p-5">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center">
-                <svg class="w-5 h-5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <div class="w-10 h-10 rounded-lg bg-primary-500/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             </div>
             <div>
-                <p class="text-2xl font-bold text-gray-900">{{ total_count }}</p>
-                <p class="text-xs text-gray-500">Total</p>
+                <p class="text-2xl font-bold text-white">{{ total_count }}</p>
+                <p class="text-xs text-white/50">Total</p>
             </div>
         </div>
     </div>
-    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+    <div class="stat-card glass-card rounded-xl p-5">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <div class="w-10 h-10 rounded-lg bg-accent-green/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             </div>
             <div>
-                <p class="text-2xl font-bold text-gray-900">{{ success_count }}</p>
-                <p class="text-xs text-gray-500">Reussies</p>
+                <p class="text-2xl font-bold text-white">{{ success_count }}</p>
+                <p class="text-xs text-white/50">Reussies</p>
             </div>
         </div>
     </div>
-    <div class="stat-card bg-white rounded-xl border border-gray-200 p-5">
+    <div class="stat-card glass-card rounded-xl p-5">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <div class="w-10 h-10 rounded-lg bg-primary-400/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             </div>
             <div>
-                <p class="text-2xl font-bold text-gray-900">{{ today_count }}</p>
-                <p class="text-xs text-gray-500">Aujourd'hui</p>
+                <p class="text-2xl font-bold text-white">{{ today_count }}</p>
+                <p class="text-xs text-white/50">Aujourd'hui</p>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Filter Bar -->
-<div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+<div class="glass-card rounded-xl p-4 mb-6">
     <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 items-end">
         <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Recherche</label>
-            <input type="text" name="q" value="{{ search }}" placeholder="Texte, utilisateur..." class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            <label class="block text-xs font-medium text-white/60 mb-1">Recherche</label>
+            <input type="text" name="q" value="{{ search }}" placeholder="Texte, utilisateur..." class="dark-input">
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Domaine</label>
-            <select name="domain" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            <label class="block text-xs font-medium text-white/60 mb-1">Domaine</label>
+            <select name="domain" class="dark-input">
                 <option value="">Tous</option>
                 {% for d in domains %}
                 <option value="{{ d }}" {% if domain == d %}selected{% endif %}>{{ d }}</option>
@@ -58,8 +58,8 @@
             </select>
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Niveau</label>
-            <select name="level" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            <label class="block text-xs font-medium text-white/60 mb-1">Niveau</label>
+            <select name="level" class="dark-input">
                 <option value="">Tous</option>
                 {% for l in levels %}
                 <option value="{{ l }}" {% if level == l %}selected{% endif %}>{{ l }}</option>
@@ -67,23 +67,23 @@
             </select>
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Statut</label>
-            <select name="success" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            <label class="block text-xs font-medium text-white/60 mb-1">Statut</label>
+            <select name="success" class="dark-input">
                 <option value="">Tous</option>
                 <option value="true" {% if success == "true" %}selected{% endif %}>Reussie</option>
                 <option value="false" {% if success == "false" %}selected{% endif %}>Echouee</option>
             </select>
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Date debut</label>
-            <input type="date" name="start_date" value="{{ start_date }}" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            <label class="block text-xs font-medium text-white/60 mb-1">Date debut</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="dark-input">
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Date fin</label>
-            <input type="date" name="end_date" value="{{ end_date }}" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+            <label class="block text-xs font-medium text-white/60 mb-1">Date fin</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="dark-input">
         </div>
         <div>
-            <button type="submit" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+            <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
                 Filtrer
             </button>
         </div>
@@ -91,52 +91,52 @@
 </div>
 
 <!-- Table -->
-<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+<div class="glass-card rounded-xl overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
-                <tr class="bg-gray-50 border-b border-gray-200">
-                    <th class="text-left px-4 py-3 font-semibold text-gray-600">#</th>
-                    <th class="text-left px-4 py-3 font-semibold text-gray-600">Utilisateur</th>
-                    <th class="text-left px-4 py-3 font-semibold text-gray-600">Domaine</th>
-                    <th class="text-left px-4 py-3 font-semibold text-gray-600">Niveau</th>
-                    <th class="text-left px-4 py-3 font-semibold text-gray-600">Type</th>
-                    <th class="text-left px-4 py-3 font-semibold text-gray-600">Statut</th>
-                    <th class="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
-                    <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
+                <tr class="bg-white/[0.03] border-b border-white/5">
+                    <th class="text-left px-4 py-3 font-semibold text-white/40">#</th>
+                    <th class="text-left px-4 py-3 font-semibold text-white/40">Utilisateur</th>
+                    <th class="text-left px-4 py-3 font-semibold text-white/40">Domaine</th>
+                    <th class="text-left px-4 py-3 font-semibold text-white/40">Niveau</th>
+                    <th class="text-left px-4 py-3 font-semibold text-white/40">Type</th>
+                    <th class="text-left px-4 py-3 font-semibold text-white/40">Statut</th>
+                    <th class="text-left px-4 py-3 font-semibold text-white/40">Date</th>
+                    <th class="text-left px-4 py-3 font-semibold text-white/40">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-white/5">
                 {% for correction in page_obj %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-gray-500">{{ correction.id }}</td>
-                    <td class="px-4 py-3 font-medium text-gray-900">{{ correction.user.phone_number }}</td>
-                    <td class="px-4 py-3 text-gray-700">{{ correction.user_domain|default:"-" }}</td>
-                    <td class="px-4 py-3 text-gray-700">{{ correction.user_level|default:"-" }}</td>
-                    <td class="px-4 py-3 text-gray-700">{{ correction.user_exercise_type|default:"-" }}</td>
+                <tr class="hover:bg-white/[0.03] transition-colors">
+                    <td class="px-4 py-3 text-white/50">{{ correction.id }}</td>
+                    <td class="px-4 py-3 font-medium text-white">{{ correction.user.phone_number }}</td>
+                    <td class="px-4 py-3 text-white/70">{{ correction.user_domain|default:"-" }}</td>
+                    <td class="px-4 py-3 text-white/70">{{ correction.user_level|default:"-" }}</td>
+                    <td class="px-4 py-3 text-white/70">{{ correction.user_exercise_type|default:"-" }}</td>
                     <td class="px-4 py-3">
                         {% if correction.success %}
-                        <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium badge-success">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                             Reussie
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-xs font-medium">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium badge-danger">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             Echouee
                         </span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 text-gray-500">{{ correction.created_at|date:"d/m/Y H:i" }}</td>
+                    <td class="px-4 py-3 text-white/50">{{ correction.created_at|date:"d/m/Y H:i" }}</td>
                     <td class="px-4 py-3">
-                        <a href="{% url 'custom_admin:correction_detail' pk=correction.id %}" class="text-brand-500 hover:text-brand-700 font-medium text-xs">
+                        <a href="{% url 'custom_admin:correction_detail' pk=correction.id %}" class="text-primary-400 hover:text-primary-300 font-medium text-xs">
                             Voir detail
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="px-4 py-8 text-center text-gray-400">Aucune correction trouvee.</td>
+                    <td colspan="8" class="px-4 py-8 text-center text-white/30">Aucune correction trouvee.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -145,23 +145,23 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
-        <p class="text-sm text-gray-600">
+    <div class="flex items-center justify-between px-4 py-3 border-t border-white/5 bg-white/[0.03]">
+        <p class="text-sm text-white/60">
             Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
         </p>
         <div class="flex items-center gap-1">
             {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}&q={{ search }}&domain={{ domain }}&level={{ level }}&success={{ success }}&start_date={{ start_date }}&end_date={{ end_date }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-white text-gray-700 transition-colors">Precedent</a>
+            <a href="?page={{ page_obj.previous_page_number }}&q={{ search }}&domain={{ domain }}&level={{ level }}&success={{ success }}&start_date={{ start_date }}&end_date={{ end_date }}" class="px-3 py-1.5 text-sm rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 transition-colors">Precedent</a>
             {% endif %}
             {% for num in page_obj.paginator.page_range %}
                 {% if page_obj.number == num %}
-                <span class="px-3 py-1.5 text-sm rounded-lg bg-brand-500 text-white font-medium">{{ num }}</span>
+                <span class="px-3 py-1.5 text-sm rounded-lg bg-primary-500 text-white font-medium">{{ num }}</span>
                 {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-                <a href="?page={{ num }}&q={{ search }}&domain={{ domain }}&level={{ level }}&success={{ success }}&start_date={{ start_date }}&end_date={{ end_date }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-white text-gray-700 transition-colors">{{ num }}</a>
+                <a href="?page={{ num }}&q={{ search }}&domain={{ domain }}&level={{ level }}&success={{ success }}&start_date={{ start_date }}&end_date={{ end_date }}" class="px-3 py-1.5 text-sm rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 transition-colors">{{ num }}</a>
                 {% endif %}
             {% endfor %}
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}&q={{ search }}&domain={{ domain }}&level={{ level }}&success={{ success }}&start_date={{ start_date }}&end_date={{ end_date }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-white text-gray-700 transition-colors">Suivant</a>
+            <a href="?page={{ page_obj.next_page_number }}&q={{ search }}&domain={{ domain }}&level={{ level }}&success={{ success }}&start_date={{ start_date }}&end_date={{ end_date }}" class="px-3 py-1.5 text-sm rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 transition-colors">Suivant</a>
             {% endif %}
         </div>
     </div>

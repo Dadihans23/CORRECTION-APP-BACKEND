@@ -5,7 +5,7 @@
 {% block page_title %}Modifier l'utilisateur{% endblock %}
 
 {% block header_actions %}
-<a href="{% url 'custom_admin:user_detail' user_id=user.id %}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+<a href="{% url 'custom_admin:user_detail' user_id=user.id %}" class="inline-flex items-center gap-2 text-sm font-medium text-white/50 hover:text-white transition-colors">
     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
     Retour au profil
 </a>
@@ -13,57 +13,46 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">Modifier les informations</h2>
-            <p class="text-sm text-gray-500 mt-1">Modifiez les champs ci-dessous puis sauvegardez.</p>
+    <div class="glass-card rounded-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/[0.07]">
+            <h2 class="text-lg font-semibold text-white">Modifier les informations</h2>
+            <p class="text-sm text-white/50 mt-1">Modifiez les champs ci-dessous puis sauvegardez.</p>
         </div>
 
         <form method="POST" class="p-6 space-y-6">
             {% csrf_token %}
 
-            <!-- Telephone (read-only) -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Telephone</label>
+                <label class="block text-sm font-medium text-white/70 mb-1">Telephone</label>
                 <input type="text" value="{{ user.phone_number }}" readonly disabled
-                       class="block w-full rounded-lg border-gray-200 bg-gray-50 text-gray-500 text-sm px-3 py-2 border cursor-not-allowed">
-                <p class="text-xs text-gray-400 mt-1">Le numero de telephone ne peut pas etre modifie.</p>
+                       class="block w-full dark-input text-sm cursor-not-allowed opacity-50">
+                <p class="text-xs text-white/30 mt-1">Le numero de telephone ne peut pas etre modifie.</p>
             </div>
 
-            <!-- Identite -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">Prenom</label>
-                    <input type="text" name="first_name" id="first_name" value="{{ user.first_name }}"
-                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                    <label for="first_name" class="block text-sm font-medium text-white/70 mb-1">Prenom</label>
+                    <input type="text" name="first_name" id="first_name" value="{{ user.first_name }}" class="block w-full dark-input text-sm">
                 </div>
                 <div>
-                    <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                    <input type="text" name="last_name" id="last_name" value="{{ user.last_name }}"
-                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                    <label for="last_name" class="block text-sm font-medium text-white/70 mb-1">Nom</label>
+                    <input type="text" name="last_name" id="last_name" value="{{ user.last_name }}" class="block w-full dark-input text-sm">
                 </div>
             </div>
 
-            <!-- Email -->
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" name="email" id="email" value="{{ user.email|default:'' }}"
-                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
-                       placeholder="email@exemple.com">
+                <label for="email" class="block text-sm font-medium text-white/70 mb-1">Email</label>
+                <input type="email" name="email" id="email" value="{{ user.email|default:'' }}" class="block w-full dark-input text-sm" placeholder="email@exemple.com">
             </div>
 
-            <!-- Profil -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                    <label for="country" class="block text-sm font-medium text-gray-700 mb-1">Pays</label>
-                    <input type="text" name="country" id="country" value="{{ user.country|default:'' }}"
-                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
-                           placeholder="Cote d'Ivoire">
+                    <label for="country" class="block text-sm font-medium text-white/70 mb-1">Pays</label>
+                    <input type="text" name="country" id="country" value="{{ user.country|default:'' }}" class="block w-full dark-input text-sm" placeholder="Cote d'Ivoire">
                 </div>
                 <div>
-                    <label for="school_level" class="block text-sm font-medium text-gray-700 mb-1">Niveau scolaire</label>
-                    <select name="school_level" id="school_level"
-                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                    <label for="school_level" class="block text-sm font-medium text-white/70 mb-1">Niveau scolaire</label>
+                    <select name="school_level" id="school_level" class="block w-full dark-input text-sm">
                         <option value="">-- Selectionner --</option>
                         <option value="College" {% if user.school_level == "College" %}selected{% endif %}>College</option>
                         <option value="Lycee" {% if user.school_level == "Lycee" %}selected{% endif %}>Lycee</option>
@@ -71,45 +60,37 @@
                     </select>
                 </div>
                 <div>
-                    <label for="institution" class="block text-sm font-medium text-gray-700 mb-1">Etablissement</label>
-                    <input type="text" name="institution" id="institution" value="{{ user.institution|default:'' }}"
-                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
-                           placeholder="Nom de l'etablissement">
+                    <label for="institution" class="block text-sm font-medium text-white/70 mb-1">Etablissement</label>
+                    <input type="text" name="institution" id="institution" value="{{ user.institution|default:'' }}" class="block w-full dark-input text-sm" placeholder="Nom de l'etablissement">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                    <label for="age" class="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                    <input type="number" name="age" id="age" value="{{ user.age|default:'' }}" min="1" max="120"
-                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border"
-                           placeholder="Age">
+                    <label for="age" class="block text-sm font-medium text-white/70 mb-1">Age</label>
+                    <input type="number" name="age" id="age" value="{{ user.age|default:'' }}" min="1" max="120" class="block w-full dark-input text-sm" placeholder="Age">
                 </div>
             </div>
 
-            <!-- Options -->
-            <div class="border-t border-gray-200 pt-6">
-                <h3 class="text-sm font-medium text-gray-700 mb-4">Options du compte</h3>
+            <div class="border-t border-white/[0.07] pt-6">
+                <h3 class="text-sm font-medium text-white/70 mb-4">Options du compte</h3>
                 <div class="flex items-center gap-6">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="is_active" {% if user.is_active %}checked{% endif %}
-                               class="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500">
-                        <span class="text-sm text-gray-700">Compte actif</span>
+                        <input type="checkbox" name="is_active" {% if user.is_active %}checked{% endif %} class="w-4 h-4 rounded border-white/20 text-primary-500 focus:ring-primary-500 bg-white/5">
+                        <span class="text-sm text-white/70">Compte actif</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="is_staff" {% if user.is_staff %}checked{% endif %}
-                               class="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500">
-                        <span class="text-sm text-gray-700">Membre du staff</span>
+                        <input type="checkbox" name="is_staff" {% if user.is_staff %}checked{% endif %} class="w-4 h-4 rounded border-white/20 text-primary-500 focus:ring-primary-500 bg-white/5">
+                        <span class="text-sm text-white/70">Membre du staff</span>
                     </label>
                 </div>
             </div>
 
-            <!-- Actions -->
-            <div class="border-t border-gray-200 pt-6 flex items-center justify-end gap-3">
-                <a href="{% url 'custom_admin:user_detail' user_id=user.id %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <div class="border-t border-white/[0.07] pt-6 flex items-center justify-end gap-3">
+                <a href="{% url 'custom_admin:user_detail' user_id=user.id %}" class="px-4 py-2 text-sm font-medium text-white/70 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors">
                     Annuler
                 </a>
-                <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+                <button type="submit" class="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
                     Sauvegarder
                 </button>
             </div>

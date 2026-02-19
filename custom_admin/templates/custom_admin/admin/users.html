@@ -5,63 +5,63 @@
 {% block page_title %}Utilisateurs{% endblock %}
 
 {% block header_actions %}
-<a href="{% url 'custom_admin:user_create' %}" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+<a href="{% url 'custom_admin:user_create' %}" class="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
     Nouvel utilisateur
 </a>
 {% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+<div class="glass-card rounded-xl overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Telephone</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Staff</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Inscrit le</th>
-                    <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+        <table class="min-w-full">
+            <thead>
+                <tr class="border-b border-white/[0.07]">
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">#</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Nom</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Telephone</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Statut</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Staff</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Inscrit le</th>
+                    <th class="px-6 py-3 text-right text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-100">
+            <tbody class="divide-y divide-white/5">
                 {% for user in page_obj %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.id }}</td>
+                <tr class="hover:bg-white/[0.03] transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-white/40">{{ user.id }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <a href="{% url 'custom_admin:user_detail' user_id=user.id %}" class="text-sm font-medium text-gray-900 hover:text-brand-600">
+                        <a href="{% url 'custom_admin:user_detail' user_id=user.id %}" class="text-sm font-medium text-white hover:text-primary-400 transition-colors">
                             {{ user.first_name }} {{ user.last_name }}
                         </a>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ user.phone_number }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ user.email|default:"-" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-white/60">{{ user.phone_number }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-white/60">{{ user.email|default:"-" }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         {% if user.is_active %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Actif</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-success">Actif</span>
                         {% else %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Inactif</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-danger">Inactif</span>
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         {% if user.is_staff %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Staff</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-violet">Staff</span>
                         {% else %}
-                        <span class="text-sm text-gray-400">-</span>
+                        <span class="text-sm text-white/30">-</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.date_joined|date:"d/m/Y" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-white/50">{{ user.date_joined|date:"d/m/Y" }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-right">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="{% url 'custom_admin:user_detail' user_id=user.id %}" class="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors" title="Voir">
+                            <a href="{% url 'custom_admin:user_detail' user_id=user.id %}" class="p-1.5 rounded-lg text-white/40 hover:text-primary-400 hover:bg-primary-500/10 transition-colors" title="Voir">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                             </a>
-                            <a href="{% url 'custom_admin:user_edit' user_id=user.id %}" class="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors" title="Modifier">
+                            <a href="{% url 'custom_admin:user_edit' user_id=user.id %}" class="p-1.5 rounded-lg text-white/40 hover:text-accent-orange hover:bg-accent-orange/10 transition-colors" title="Modifier">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             </a>
-                            <button onclick="deleteUser({{ user.id }}, '{{ user.first_name }} {{ user.last_name }}')" class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Supprimer">
+                            <button onclick="deleteUser({{ user.id }}, '{{ user.first_name }} {{ user.last_name }}')" class="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Supprimer">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
                         </div>
@@ -69,7 +69,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="px-6 py-12 text-center text-sm text-gray-500">
+                    <td colspan="8" class="px-6 py-12 text-center text-sm text-white/40">
                         Aucun utilisateur trouve.
                     </td>
                 </tr>
@@ -78,31 +78,26 @@
         </table>
     </div>
 
-    <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-        <p class="text-sm text-gray-500">
+    <div class="px-6 py-4 border-t border-white/[0.07] flex items-center justify-between">
+        <p class="text-sm text-white/50">
             Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
         </p>
         <nav class="flex items-center gap-1">
             {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                Precedent
-            </a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 text-sm font-medium text-white/70 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors">Precedent</a>
             {% endif %}
 
             {% for num in page_obj.paginator.page_range %}
                 {% if page_obj.number == num %}
-                <span class="px-3 py-1.5 text-sm font-medium text-white bg-brand-500 rounded-lg">{{ num }}</span>
+                <span class="px-3 py-1.5 text-sm font-medium text-white bg-primary-500 rounded-lg">{{ num }}</span>
                 {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-                <a href="?page={{ num }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
+                <a href="?page={{ num }}" class="px-3 py-1.5 text-sm font-medium text-white/70 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors">{{ num }}</a>
                 {% endif %}
             {% endfor %}
 
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                Suivant
-            </a>
+            <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 text-sm font-medium text-white/70 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors">Suivant</a>
             {% endif %}
         </nav>
     </div>

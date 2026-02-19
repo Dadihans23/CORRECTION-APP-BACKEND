@@ -4,7 +4,7 @@
 {% block page_title %}Rapports{% endblock %}
 
 {% block header_actions %}
-<a href="{% url 'custom_admin:export_all_reports' %}" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+<a href="{% url 'custom_admin:export_all_reports' %}" class="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
     Exporter tout (ZIP)
 </a>
@@ -14,41 +14,41 @@
 <!-- Available Reports -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     {% for report in reports.available_reports %}
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+    <div class="glass-card rounded-xl border border-white/5 shadow-sm p-6 hover:bg-white/[0.06] transition-shadow">
         <div class="flex items-start justify-between mb-4">
             <div>
                 {% if report.type == 'sales' %}
-                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mb-3">
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="w-10 h-10 bg-accent-green/15 rounded-lg flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 {% elif report.type == 'images' %}
-                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <div class="w-10 h-10 bg-primary-500/15 rounded-lg flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
                 {% else %}
-                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
-                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <div class="w-10 h-10 bg-accent-violet/15 rounded-lg flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-accent-violet" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
                 {% endif %}
-                <h3 class="text-sm font-semibold text-gray-900">{{ report.name }}</h3>
+                <h3 class="text-sm font-semibold text-white">{{ report.name }}</h3>
             </div>
         </div>
 
         <div class="space-y-2 mb-4">
             {% if report.type == 'sales' %}
-            <p class="text-xs text-gray-500">{{ report.total_sales }} ventes | {{ report.total_revenue|floatformat:0 }} CFA</p>
+            <p class="text-xs text-white/50">{{ report.total_sales }} ventes | {{ report.total_revenue|floatformat:0 }} CFA</p>
             {% elif report.type == 'images' %}
-            <p class="text-xs text-gray-500">{{ report.total_corrections }} corrections</p>
+            <p class="text-xs text-white/50">{{ report.total_corrections }} corrections</p>
             {% if report.top_domain %}
-            <p class="text-xs text-gray-500">Top domaine : {{ report.top_domain.domaine }}</p>
+            <p class="text-xs text-white/50">Top domaine : {{ report.top_domain.domaine }}</p>
             {% endif %}
             {% else %}
-            <p class="text-xs text-gray-500">{{ report.active_users }} actifs | {{ report.new_users }} nouveaux</p>
+            <p class="text-xs text-white/50">{{ report.active_users }} actifs | {{ report.new_users }} nouveaux</p>
             {% endif %}
-            <p class="text-xs text-gray-400">Derniere maj : {{ report.last_generated|date:"d/m/Y H:i" }}</p>
+            <p class="text-xs text-white/30">Derniere maj : {{ report.last_generated|date:"d/m/Y H:i" }}</p>
         </div>
 
-        <a href="{% url 'custom_admin:download_report' report.type %}" class="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700">
+        <a href="{% url 'custom_admin:download_report' report.type %}" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-400 hover:text-primary-300">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
             Telecharger
         </a>
@@ -57,37 +57,37 @@
 </div>
 
 <!-- Report History -->
-<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-6">
-    <div class="px-6 py-4 border-b border-gray-100">
-        <h3 class="text-sm font-semibold text-gray-900">Historique des transactions recentes</h3>
+<div class="glass-card rounded-xl border border-white/5 shadow-sm overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-white/5">
+        <h3 class="text-sm font-semibold text-white">Historique des transactions recentes</h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-white/5">
+            <thead class="bg-white/[0.03]">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Periode</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Montant</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Statut</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">#</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Description</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Periode</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Montant</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Date</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Statut</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-white/5">
                 {% for h in reports.report_history %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-500">{{ h.id }}</td>
-                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ h.name }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">{{ h.period }}</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ h.amount|floatformat:0 }} CFA</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">{{ h.generated_at|date:"d/m/Y H:i" }}</td>
+                <tr class="hover:bg-white/[0.03] transition-colors">
+                    <td class="px-4 py-3 text-sm text-white/50">{{ h.id }}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-white">{{ h.name }}</td>
+                    <td class="px-4 py-3 text-sm text-white/50">{{ h.period }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-white">{{ h.amount|floatformat:0 }} CFA</td>
+                    <td class="px-4 py-3 text-sm text-white/50">{{ h.generated_at|date:"d/m/Y H:i" }}</td>
                     <td class="px-4 py-3">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Termine</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium badge-success">Termine</span>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500">Aucun historique.</td>
+                    <td colspan="6" class="px-4 py-8 text-center text-sm text-white/50">Aucun historique.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -96,28 +96,28 @@
 </div>
 
 <!-- Scheduled Reports -->
-<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100">
-        <h3 class="text-sm font-semibold text-gray-900">Rapports programmes</h3>
+<div class="glass-card rounded-xl border border-white/5 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-white/5">
+        <h3 class="text-sm font-semibold text-white">Rapports programmes</h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-white/5">
+            <thead class="bg-white/[0.03]">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Rapport</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Frequence</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Prochaine execution</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Rapport</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Frequence</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Prochaine execution</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Type</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-white/5">
                 {% for s in reports.scheduled_reports %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ s.name }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">{{ s.frequency }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">{{ s.next_run|date:"d/m/Y" }}</td>
+                <tr class="hover:bg-white/[0.03] transition-colors">
+                    <td class="px-4 py-3 text-sm font-medium text-white">{{ s.name }}</td>
+                    <td class="px-4 py-3 text-sm text-white/50">{{ s.frequency }}</td>
+                    <td class="px-4 py-3 text-sm text-white/50">{{ s.next_run|date:"d/m/Y" }}</td>
                     <td class="px-4 py-3">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{{ s.type }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium badge-info">{{ s.type }}</span>
                     </td>
                 </tr>
                 {% endfor %}
