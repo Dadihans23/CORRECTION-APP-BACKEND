@@ -5,7 +5,7 @@
 
 {% block header_actions %}
 <a href="{% url 'custom_admin:subscription_edit' subscription_id=subscription.id %}"
-   class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors">
+   class="inline-flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 transition-colors">
     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
     Modifier
 </a>
@@ -14,7 +14,7 @@
 {% block content %}
 <!-- Back link -->
 <div class="mb-6">
-    <a href="{% url 'custom_admin:subscriptions' %}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-500 transition-colors">
+    <a href="{% url 'custom_admin:subscriptions' %}" class="inline-flex items-center gap-1 text-sm text-white/50 hover:text-primary-400 transition-colors">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         Retour aux abonnements
     </a>
@@ -22,64 +22,64 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
     <!-- User info card -->
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Utilisateur</h3>
+    <div class="glass-card rounded-xl p-5">
+        <h3 class="text-xs font-semibold text-white/40 uppercase tracking-wide mb-4">Utilisateur</h3>
         <div class="space-y-3">
             <div>
-                <p class="text-xs text-gray-500">Telephone</p>
-                <p class="text-sm font-medium text-gray-900">{{ subscription.user.phone_number }}</p>
+                <p class="text-xs text-white/50">Telephone</p>
+                <p class="text-sm font-medium text-white">{{ subscription.user.phone_number }}</p>
             </div>
             <div>
-                <p class="text-xs text-gray-500">Nom complet</p>
-                <p class="text-sm font-medium text-gray-900">{{ subscription.user.first_name }} {{ subscription.user.last_name }}</p>
+                <p class="text-xs text-white/50">Nom complet</p>
+                <p class="text-sm font-medium text-white">{{ subscription.user.first_name }} {{ subscription.user.last_name }}</p>
             </div>
             <div>
-                <p class="text-xs text-gray-500">Email</p>
-                <p class="text-sm font-medium text-gray-900">{{ subscription.user.email|default:"--" }}</p>
+                <p class="text-xs text-white/50">Email</p>
+                <p class="text-sm font-medium text-white">{{ subscription.user.email|default:"--" }}</p>
             </div>
         </div>
     </div>
 
     <!-- Pack info card -->
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Pack</h3>
+    <div class="glass-card rounded-xl p-5">
+        <h3 class="text-xs font-semibold text-white/40 uppercase tracking-wide mb-4">Pack</h3>
         <div class="space-y-3">
             <div>
-                <p class="text-xs text-gray-500">Nom du pack</p>
-                <p class="text-sm font-medium text-gray-900">{{ subscription.pack.name }}</p>
+                <p class="text-xs text-white/50">Nom du pack</p>
+                <p class="text-sm font-medium text-white">{{ subscription.pack.name }}</p>
             </div>
             <div>
-                <p class="text-xs text-gray-500">Prix</p>
-                <p class="text-sm font-medium text-gray-900">{{ subscription.pack.price }} <span class="text-gray-500">CFA</span></p>
+                <p class="text-xs text-white/50">Prix</p>
+                <p class="text-sm font-medium text-white">{{ subscription.pack.price }} <span class="text-white/50">CFA</span></p>
             </div>
         </div>
     </div>
 
     <!-- Status card -->
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Statut</h3>
+    <div class="glass-card rounded-xl p-5">
+        <h3 class="text-xs font-semibold text-white/40 uppercase tracking-wide mb-4">Statut</h3>
         <div class="space-y-3">
             <div>
-                <p class="text-xs text-gray-500 mb-1">Etat</p>
+                <p class="text-xs text-white/50 mb-1">Etat</p>
                 {% if subscription.is_active %}
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium badge-success border border-accent-green/20">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
                     Actif
                 </span>
                 {% else %}
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium badge-danger border border-red-500/20">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>
                     Expire
                 </span>
                 {% endif %}
             </div>
             <div>
-                <p class="text-xs text-gray-500">Date de creation</p>
-                <p class="text-sm font-medium text-gray-900">{{ subscription.created_at|date:"d/m/Y H:i" }}</p>
+                <p class="text-xs text-white/50">Date de creation</p>
+                <p class="text-sm font-medium text-white">{{ subscription.created_at|date:"d/m/Y H:i" }}</p>
             </div>
             <div>
-                <p class="text-xs text-gray-500">Date d'expiration</p>
-                <p class="text-sm font-medium text-gray-900">{{ subscription.expires_at|date:"d/m/Y H:i" }}</p>
+                <p class="text-xs text-white/50">Date d'expiration</p>
+                <p class="text-sm font-medium text-white">{{ subscription.expires_at|date:"d/m/Y H:i" }}</p>
             </div>
         </div>
     </div>
@@ -88,75 +88,75 @@
 <!-- Quota progress cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <!-- Images quota -->
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="glass-card rounded-xl p-5">
         <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-gray-700">Corrections d'images</h3>
-            <span class="text-xs font-medium text-gray-500">{{ images_used }} / {{ images_limit }} utilisees</span>
+            <h3 class="text-sm font-semibold text-white/70">Corrections d'images</h3>
+            <span class="text-xs font-medium text-white/50">{{ images_used }} / {{ images_limit }} utilisees</span>
         </div>
-        <div class="w-full bg-gray-100 rounded-full h-3 mb-3">
+        <div class="dark-progress w-full rounded-full h-3 mb-3">
             {% widthratio images_used images_limit 100 as images_pct %}
-            <div class="h-3 rounded-full transition-all duration-500 {% if images_pct > 80 %}bg-red-500{% elif images_pct > 50 %}bg-yellow-500{% else %}bg-brand-500{% endif %}"
+            <div class="h-3 rounded-full transition-all duration-500 {% if images_pct > 80 %}bg-red-500{% elif images_pct > 50 %}bg-yellow-500{% else %}bg-primary-500{% endif %}"
                  style="width: {% widthratio images_used images_limit 100 %}%"></div>
         </div>
         <div class="flex items-center justify-between">
-            <p class="text-sm text-gray-600">
-                <span class="font-semibold text-gray-900">{{ subscription.image_corrections_remaining }}</span> restantes
+            <p class="text-sm text-white/60">
+                <span class="font-semibold text-white">{{ subscription.image_corrections_remaining }}</span> restantes
             </p>
-            <p class="text-xs text-gray-400">Limite: {{ images_limit }}</p>
+            <p class="text-xs text-white/40">Limite: {{ images_limit }}</p>
         </div>
     </div>
 
     <!-- Chat quota -->
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="glass-card rounded-xl p-5">
         <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-gray-700">Questions chat</h3>
-            <span class="text-xs font-medium text-gray-500">{{ chat_used }} / {{ chat_limit }} utilisees</span>
+            <h3 class="text-sm font-semibold text-white/70">Questions chat</h3>
+            <span class="text-xs font-medium text-white/50">{{ chat_used }} / {{ chat_limit }} utilisees</span>
         </div>
-        <div class="w-full bg-gray-100 rounded-full h-3 mb-3">
+        <div class="dark-progress w-full rounded-full h-3 mb-3">
             {% widthratio chat_used chat_limit 100 as chat_pct %}
-            <div class="h-3 rounded-full transition-all duration-500 {% if chat_pct > 80 %}bg-red-500{% elif chat_pct > 50 %}bg-yellow-500{% else %}bg-brand-500{% endif %}"
+            <div class="h-3 rounded-full transition-all duration-500 {% if chat_pct > 80 %}bg-red-500{% elif chat_pct > 50 %}bg-yellow-500{% else %}bg-primary-500{% endif %}"
                  style="width: {% widthratio chat_used chat_limit 100 %}%"></div>
         </div>
         <div class="flex items-center justify-between">
-            <p class="text-sm text-gray-600">
-                <span class="font-semibold text-gray-900">{{ subscription.chat_questions_remaining }}</span> restantes
+            <p class="text-sm text-white/60">
+                <span class="font-semibold text-white">{{ subscription.chat_questions_remaining }}</span> restantes
             </p>
-            <p class="text-xs text-gray-400">Limite: {{ chat_limit }}</p>
+            <p class="text-xs text-white/40">Limite: {{ chat_limit }}</p>
         </div>
     </div>
 </div>
 
 <!-- Recent usage logs -->
-<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-    <div class="px-5 py-4 border-b border-gray-200">
-        <h3 class="text-sm font-semibold text-gray-700">Historique d'utilisation recent</h3>
+<div class="glass-card rounded-xl overflow-hidden">
+    <div class="px-5 py-4 border-b border-white/5">
+        <h3 class="text-sm font-semibold text-white/70">Historique d'utilisation recent</h3>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-sm text-left">
-            <thead class="bg-gray-50 border-b border-gray-200">
+            <thead class="bg-white/[0.03] border-b border-white/5">
                 <tr>
-                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>
-                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
-                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Metadata</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-white/40 uppercase tracking-wide">Action</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-white/40 uppercase tracking-wide">Date</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-white/40 uppercase tracking-wide">Metadata</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-white/5">
                 {% for log in recent_logs %}
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-white/[0.03] transition-colors">
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            {% if log.action == 'image_correction' %}bg-purple-50 text-purple-700
-                            {% elif log.action == 'chat_question' %}bg-blue-50 text-blue-700
-                            {% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {% if log.action == 'image_correction' %}badge-violet
+                            {% elif log.action == 'chat_question' %}badge-info
+                            {% else %}bg-white/5 text-white/50{% endif %}">
                             {{ log.action }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-gray-500">{{ log.timestamp|date:"d/m/Y H:i" }}</td>
-                    <td class="px-4 py-3 text-gray-500 text-xs font-mono">{{ log.metadata|default:"--" }}</td>
+                    <td class="px-4 py-3 text-white/50">{{ log.timestamp|date:"d/m/Y H:i" }}</td>
+                    <td class="px-4 py-3 text-white/50 text-xs font-mono">{{ log.metadata|default:"--" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="3" class="px-4 py-6 text-center text-gray-500 text-sm">Aucun log d'utilisation.</td>
+                    <td colspan="3" class="px-4 py-6 text-center text-white/50 text-sm">Aucun log d'utilisation.</td>
                 </tr>
                 {% endfor %}
             </tbody>

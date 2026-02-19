@@ -5,10 +5,10 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-900">{{ pack.name }}</h2>
-            <p class="text-sm text-gray-500 mt-1">Modifiez les informations du pack d'abonnement.</p>
+    <div class="glass-card rounded-xl border border-white/[0.07]">
+        <div class="px-6 py-4 border-b border-white/5">
+            <h2 class="text-lg font-semibold text-white">{{ pack.name }}</h2>
+            <p class="text-sm text-white/50 mt-1">Modifiez les informations du pack d'abonnement.</p>
         </div>
 
         <form method="post" class="p-6 space-y-5">
@@ -16,48 +16,48 @@
 
             <!-- Name -->
             <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nom du pack <span class="text-red-500">*</span></label>
+                <label for="name" class="block text-sm font-medium text-white/70 mb-1">Nom du pack <span class="text-red-500">*</span></label>
                 <input type="text" name="name" id="name" required
                        value="{{ pack.name }}"
-                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                       class="dark-input block w-full rounded-lg text-sm px-3 py-2">
             </div>
 
             <!-- Price -->
             <div>
-                <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Prix (CFA) <span class="text-red-500">*</span></label>
+                <label for="price" class="block text-sm font-medium text-white/70 mb-1">Prix (CFA) <span class="text-red-500">*</span></label>
                 <input type="number" name="price" id="price" required min="0" step="1"
                        value="{{ pack.price|floatformat:0 }}"
-                       class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                       class="dark-input block w-full rounded-lg text-sm px-3 py-2">
             </div>
 
             <!-- Description -->
             <div>
-                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-red-500">*</span></label>
+                <label for="description" class="block text-sm font-medium text-white/70 mb-1">Description <span class="text-red-500">*</span></label>
                 <textarea name="description" id="description" rows="3" required
-                          class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">{{ pack.description }}</textarea>
+                          class="dark-input block w-full rounded-lg text-sm px-3 py-2">{{ pack.description }}</textarea>
             </div>
 
             <!-- Limits -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="image_corrections_limit" class="block text-sm font-medium text-gray-700 mb-1">Limite corrections images</label>
+                    <label for="image_corrections_limit" class="block text-sm font-medium text-white/70 mb-1">Limite corrections images</label>
                     <input type="number" name="image_corrections_limit" id="image_corrections_limit" min="0"
                            value="{{ pack.image_corrections_limit }}"
-                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                           class="dark-input block w-full rounded-lg text-sm px-3 py-2">
                 </div>
                 <div>
-                    <label for="chat_questions_limit" class="block text-sm font-medium text-gray-700 mb-1">Limite questions chat</label>
+                    <label for="chat_questions_limit" class="block text-sm font-medium text-white/70 mb-1">Limite questions chat</label>
                     <input type="number" name="chat_questions_limit" id="chat_questions_limit" min="0"
                            value="{{ pack.chat_questions_limit }}"
-                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                           class="dark-input block w-full rounded-lg text-sm px-3 py-2">
                 </div>
             </div>
 
             <!-- Duration -->
             <div>
-                <label for="duration" class="block text-sm font-medium text-gray-700 mb-1">Duree</label>
+                <label for="duration" class="block text-sm font-medium text-white/70 mb-1">Duree</label>
                 <select name="duration" id="duration"
-                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">
+                        class="dark-input block w-full rounded-lg text-sm px-3 py-2">
                     <option value="0" {% if pack.duration == 0 %}selected{% endif %}>Illimite</option>
                     <option value="30" {% if pack.duration == 30 %}selected{% endif %}>30 jours</option>
                     <option value="90" {% if pack.duration == 90 %}selected{% endif %}>90 jours</option>
@@ -67,10 +67,10 @@
 
             <!-- Features -->
             <div>
-                <label for="features" class="block text-sm font-medium text-gray-700 mb-1">Fonctionnalites</label>
+                <label for="features" class="block text-sm font-medium text-white/70 mb-1">Fonctionnalites</label>
                 <textarea name="features" id="features" rows="4"
-                          class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border">{{ pack.features|safe }}</textarea>
-                <p class="text-xs text-gray-400 mt-1">Format JSON (tableau) ou une fonctionnalite par ligne.</p>
+                          class="dark-input block w-full rounded-lg text-sm px-3 py-2">{{ pack.features|safe }}</textarea>
+                <p class="text-xs text-white/40 mt-1">Format JSON (tableau) ou une fonctionnalite par ligne.</p>
             </div>
 
             <!-- Checkboxes -->
@@ -78,23 +78,23 @@
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="is_best_plan" value="true"
                            {% if pack.is_best_plan %}checked{% endif %}
-                           class="rounded border-gray-300 text-brand-500 focus:ring-brand-500">
-                    <span class="text-sm text-gray-700">Meilleur plan</span>
+                           class="rounded border-white/20 text-primary-500 focus:ring-primary-500 bg-white/5">
+                    <span class="text-sm text-white/70">Meilleur plan</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="is_active" value="true"
                            {% if pack.is_active %}checked{% endif %}
-                           class="rounded border-gray-300 text-brand-500 focus:ring-brand-500">
-                    <span class="text-sm text-gray-700">Actif</span>
+                           class="rounded border-white/20 text-primary-500 focus:ring-primary-500 bg-white/5">
+                    <span class="text-sm text-white/70">Actif</span>
                 </label>
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                <a href="{% url 'custom_admin:pack_detail' pack_id=pack.id %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+                <a href="{% url 'custom_admin:pack_detail' pack_id=pack.id %}" class="px-4 py-2 text-sm font-medium bg-white/5 border border-white/10 text-white/70 rounded-lg hover:bg-white/10 transition-colors">
                     Annuler
                 </a>
-                <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+                <button type="submit" class="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
                     Sauvegarder
                 </button>
             </div>

@@ -5,7 +5,7 @@
 
 {% block header_actions %}
 <form method="GET" class="flex items-center gap-2">
-    <select name="period" onchange="this.form.submit()" class="rounded-lg border-gray-300 text-sm px-3 py-2 border focus:border-brand-500 focus:ring-brand-500">
+    <select name="period" onchange="this.form.submit()" class="dark-input rounded-lg text-sm px-3 py-2">
         <option value="7" {% if analytics.period == 7 %}selected{% endif %}>7 jours</option>
         <option value="30" {% if analytics.period == 30 %}selected{% endif %}>30 jours</option>
         <option value="90" {% if analytics.period == 90 %}selected{% endif %}>90 jours</option>
@@ -16,54 +16,54 @@
 {% block content %}
 <!-- KPI Cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-green-500">
-        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Revenue Totale</p>
-        <p class="mt-1 text-2xl font-bold text-gray-900">{{ analytics.kpi.total_revenue|floatformat:0 }} <span class="text-sm font-normal text-gray-500">CFA</span></p>
+    <div class="stat-card glass-card rounded-xl p-5 border border-white/5 shadow-sm border-l-4 border-l-accent-green">
+        <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Revenue Totale</p>
+        <p class="mt-1 text-2xl font-bold text-white">{{ analytics.kpi.total_revenue|floatformat:0 }} <span class="text-sm font-normal text-white/50">CFA</span></p>
     </div>
-    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-brand-500">
-        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Nouveaux utilisateurs</p>
-        <p class="mt-1 text-2xl font-bold text-gray-900">{{ analytics.user_growth.this_month }}</p>
-        <p class="text-xs mt-1 {% if analytics.user_growth.growth_rate >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+    <div class="stat-card glass-card rounded-xl p-5 border border-white/5 shadow-sm border-l-4 border-l-primary-500">
+        <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Nouveaux utilisateurs</p>
+        <p class="mt-1 text-2xl font-bold text-white">{{ analytics.user_growth.this_month }}</p>
+        <p class="text-xs mt-1 {% if analytics.user_growth.growth_rate >= 0 %}text-accent-green{% else %}text-red-400{% endif %}">
             {% if analytics.user_growth.growth_rate >= 0 %}+{% endif %}{{ analytics.user_growth.growth_rate }}% vs mois dernier
         </p>
     </div>
-    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-blue-500">
-        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Retention 30j</p>
-        <p class="mt-1 text-2xl font-bold text-gray-900">{{ analytics.kpi.retention_rate }}%</p>
+    <div class="stat-card glass-card rounded-xl p-5 border border-white/5 shadow-sm border-l-4 border-l-primary-400">
+        <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Retention 30j</p>
+        <p class="mt-1 text-2xl font-bold text-white">{{ analytics.kpi.retention_rate }}%</p>
     </div>
-    <div class="stat-card bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-purple-500">
-        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Actions</p>
-        <p class="mt-1 text-2xl font-bold text-gray-900">{{ analytics.kpi.total_actions }}</p>
+    <div class="stat-card glass-card rounded-xl p-5 border border-white/5 shadow-sm border-l-4 border-l-accent-violet">
+        <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Total Actions</p>
+        <p class="mt-1 text-2xl font-bold text-white">{{ analytics.kpi.total_actions }}</p>
     </div>
 </div>
 
 <!-- Live Badge -->
 <div class="flex items-center gap-4 mb-6">
-    <div class="inline-flex items-center gap-2 bg-white rounded-lg border border-gray-100 shadow-sm px-4 py-2">
+    <div class="inline-flex items-center gap-2 glass-card rounded-lg border border-white/5 shadow-sm px-4 py-2">
         <span class="relative flex h-2.5 w-2.5">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
         </span>
-        <span class="text-sm text-gray-700"><strong>{{ analytics.live.active_users }}</strong> utilisateur(s) actif(s)</span>
+        <span class="text-sm text-white/70"><strong>{{ analytics.live.active_users }}</strong> utilisateur(s) actif(s)</span>
     </div>
-    <div class="inline-flex items-center gap-2 bg-white rounded-lg border border-gray-100 shadow-sm px-4 py-2">
-        <span class="text-sm text-gray-700"><strong>{{ analytics.live.actions_last_10min }}</strong> actions (10 min)</span>
+    <div class="inline-flex items-center gap-2 glass-card rounded-lg border border-white/5 shadow-sm px-4 py-2">
+        <span class="text-sm text-white/70"><strong>{{ analytics.live.actions_last_10min }}</strong> actions (10 min)</span>
     </div>
 </div>
 
 <!-- Charts Row -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
     <!-- Activity Chart (2/3) -->
-    <div class="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-        <h3 class="text-sm font-semibold text-gray-900 mb-4">Activite quotidienne</h3>
+    <div class="lg:col-span-2 glass-card rounded-xl border border-white/5 shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-white mb-4">Activite quotidienne</h3>
         <div style="height: 300px;">
             <canvas id="activityChart"></canvas>
         </div>
     </div>
 
     <!-- Usage Pie (1/3) -->
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-        <h3 class="text-sm font-semibold text-gray-900 mb-4">Repartition par type</h3>
+    <div class="glass-card rounded-xl border border-white/5 shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-white mb-4">Repartition par type</h3>
         <div style="height: 300px;">
             <canvas id="usageChart"></canvas>
         </div>
@@ -73,16 +73,16 @@
 <!-- Revenue + Levels -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Revenue Chart -->
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-        <h3 class="text-sm font-semibold text-gray-900 mb-4">Revenus quotidiens (CFA)</h3>
+    <div class="glass-card rounded-xl border border-white/5 shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-white mb-4">Revenus quotidiens (CFA)</h3>
         <div style="height: 260px;">
             <canvas id="revenueChart"></canvas>
         </div>
     </div>
 
     <!-- Levels Chart -->
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-        <h3 class="text-sm font-semibold text-gray-900 mb-4">Niveaux scolaires</h3>
+    <div class="glass-card rounded-xl border border-white/5 shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-white mb-4">Niveaux scolaires</h3>
         <div style="height: 260px;">
             <canvas id="levelsChart"></canvas>
         </div>
@@ -90,31 +90,31 @@
 </div>
 
 <!-- Top Packs -->
-<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100">
-        <h3 class="text-sm font-semibold text-gray-900">Top Packs ({{ analytics.period }} jours)</h3>
+<div class="glass-card rounded-xl border border-white/5 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-white/5">
+        <h3 class="text-sm font-semibold text-white">Top Packs ({{ analytics.period }} jours)</h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-white/5">
+            <thead class="bg-white/[0.03]">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Pack</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Ventes</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Revenus</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">#</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Pack</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Ventes</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase">Revenus</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-white/5">
                 {% for pack in analytics.top_packs %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
-                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ pack.name }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">{{ pack.sales }}</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ pack.revenue|floatformat:0 }} CFA</td>
+                <tr class="hover:bg-white/[0.03] transition-colors">
+                    <td class="px-4 py-3 text-sm text-white/50">{{ forloop.counter }}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-white">{{ pack.name }}</td>
+                    <td class="px-4 py-3 text-sm text-white/70">{{ pack.sales }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-white">{{ pack.revenue|floatformat:0 }} CFA</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500">Aucune vente sur cette periode.</td>
+                    <td colspan="4" class="px-4 py-8 text-center text-sm text-white/50">Aucune vente sur cette periode.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -143,8 +143,8 @@ new Chart(document.getElementById('activityChart').getContext('2d'), {
             {
                 label: 'Corrections',
                 data: a.daily_images,
-                borderColor: '#02A195',
-                backgroundColor: 'rgba(2, 161, 149, 0.1)',
+                borderColor: '#1E88E5',
+                backgroundColor: 'rgba(30, 136, 229, 0.1)',
                 fill: true,
                 tension: 0.35,
                 borderWidth: 2,
@@ -153,8 +153,8 @@ new Chart(document.getElementById('activityChart').getContext('2d'), {
             {
                 label: 'Chat',
                 data: a.daily_chat,
-                borderColor: '#8B5CF6',
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                borderColor: '#AB47BC',
+                backgroundColor: 'rgba(171, 71, 188, 0.1)',
                 fill: true,
                 tension: 0.35,
                 borderWidth: 2,
@@ -165,10 +165,22 @@ new Chart(document.getElementById('activityChart').getContext('2d'), {
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { size: 11 }, color: 'rgba(255,255,255,0.4)' }
+            }
+        },
         scales: {
-            y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 10 } } },
-            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } }
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255,255,255,0.06)' },
+                ticks: { font: { size: 10 }, color: 'rgba(255,255,255,0.4)' }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { font: { size: 10 }, maxRotation: 45, color: 'rgba(255,255,255,0.4)' }
+            }
         }
     }
 });
@@ -180,16 +192,21 @@ new Chart(document.getElementById('usageChart').getContext('2d'), {
         labels: a.usage.labels,
         datasets: [{
             data: a.usage.series,
-            backgroundColor: ['#02A195', '#8B5CF6'],
+            backgroundColor: ['#1E88E5', '#AB47BC'],
             borderWidth: 2,
-            borderColor: '#fff',
+            borderColor: 'rgba(255,255,255,0.05)',
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
         cutout: '65%',
-        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } } }
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { font: { size: 11 }, padding: 12, color: 'rgba(255,255,255,0.4)' }
+            }
+        }
     }
 });
 
@@ -201,8 +218,8 @@ new Chart(document.getElementById('revenueChart').getContext('2d'), {
         datasets: [{
             label: 'Revenus (CFA)',
             data: a.daily_revenue,
-            backgroundColor: 'rgba(16, 185, 129, 0.6)',
-            borderColor: '#10B981',
+            backgroundColor: 'rgba(102, 187, 106, 0.5)',
+            borderColor: '#66BB6A',
             borderWidth: 1,
             borderRadius: 4,
         }]
@@ -212,8 +229,15 @@ new Chart(document.getElementById('revenueChart').getContext('2d'), {
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-            y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 10 } } },
-            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } }
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255,255,255,0.06)' },
+                ticks: { font: { size: 10 }, color: 'rgba(255,255,255,0.4)' }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { font: { size: 10 }, maxRotation: 45, color: 'rgba(255,255,255,0.4)' }
+            }
         }
     }
 });
@@ -225,7 +249,7 @@ new Chart(document.getElementById('levelsChart').getContext('2d'), {
         labels: a.levels.labels,
         datasets: [{
             data: a.levels.series,
-            backgroundColor: ['#02A195', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981'],
+            backgroundColor: ['#1E88E5', '#4FC3F7', '#AB47BC', '#FB8C00', '#EF5350', '#66BB6A'],
             borderRadius: 4,
         }]
     },
@@ -235,8 +259,15 @@ new Chart(document.getElementById('levelsChart').getContext('2d'), {
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-            x: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 10 } } },
-            y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+            x: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255,255,255,0.06)' },
+                ticks: { font: { size: 10 }, color: 'rgba(255,255,255,0.4)' }
+            },
+            y: {
+                grid: { display: false },
+                ticks: { font: { size: 11 }, color: 'rgba(255,255,255,0.4)' }
+            }
         }
     }
 });
