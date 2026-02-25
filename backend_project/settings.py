@@ -22,6 +22,9 @@ os.environ['DJANGO_SERVER_TIMEOUT'] = '60'
 # Clé API Gemini
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
+# MoneyFusion Payment API
+MONEYFUSION_API_URL = os.getenv('MONEYFUSION_API_URL', '')
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-)*_3xsh-gg-kg@eca5y(tbiib&bd6qi3sux=s&58$^s-9!9bv_'
 

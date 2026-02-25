@@ -164,6 +164,13 @@ class Transaction(models.Model):
         ('renewal', 'Renouvellement'),
     )
 
+    PAYMENT_STATUS = [
+        ('pending', 'En attente'),
+        ('paid', 'Payé'),
+        ('failed', 'Échoué'),
+        ('cancelled', 'Annulé'),
+    ]
+
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='transactions')
     # related_name différents
     pack = models.ForeignKey(
@@ -176,9 +183,15 @@ class Transaction(models.Model):
     price_paid = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(default=timezone.now)
 
+    # === PAIEMENT MONEYFUSION ===
+    token_pay = models.CharField(max_length=100, null=True, blank=True, unique=True)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='pending')
+    phone_number = models.CharField(max_length=20, blank=True)
+    payment_method = models.CharField(max_length=50, blank=True)  # ex: "orange", "mtn"
+
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.email} → {self.pack.name} ({self.get_transaction_type_display()})"
+        return f"{self.user.phone_number} → {self.pack.name} ({self.get_transaction_type_display()}) [{self.payment_status}]"
     
