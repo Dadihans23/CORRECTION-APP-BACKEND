@@ -39,6 +39,7 @@ gunicorn backend_project.wsgi:application --log-file -
 ### Key External Integrations
 
 - **Google Gemini API** - AI corrections and chat (`GEMINI_API_KEY` in `.env`)
+- **GeniusPay** - Mobile money payments (Orange Money, Wave, MTN, Moov) — base URL `https://pay.genius.ci/api/v1/merchant`, variables `GENIUSPAY_API_KEY`, `GENIUSPAY_API_SECRET`, `GENIUSPAY_WEBHOOK_SECRET`, `PAYMENT_MOCK_MODE`
 - **Pytesseract** - OCR text extraction from images
 - **Firebase** - Push notifications for orders/status changes
 - **ReportLab/OpenPyXL** - PDF and Excel report generation
@@ -61,9 +62,12 @@ gunicorn backend_project.wsgi:application --log-file -
   GET site-settings/         → App configuration
 
 /api/subscription/
-  POST subscribe/            → Subscribe to pack
-  GET my-subscription/       → Current subscription status
-  GET transactions/          → Payment history
+  POST subscribe/                        → Initiate payment (crée Transaction pending, appelle GeniusPay)
+  GET  my-subscription/                  → Current subscription status
+  GET  transactions/                     → Payment history
+  POST payment/webhook/                  → Webhook GeniusPay (AllowAny, active Subscription si paid)
+  GET  payment/status/<token_pay>/       → Poll statut paiement (interroge GeniusPay si pending)
+  POST payment/cancel/<token_pay>/       → Marque Transaction failed (timeout app mobile)
 
 /custom-admin/               → Dashboard for admin users
   GET /                      → Dashboard stats
@@ -90,10 +94,16 @@ gunicorn backend_project.wsgi:application --log-file -
 - `UsageLog` - Tracks quota consumption per action
 - `SiteSettings` - Singleton model for app-wide configuration
 
-**Quota flow:**
-1. User subscribes → `Subscription` created with limits from `Pack`
-2. Each correction → `subscription.deduct_image_correction()` called
-3. Each chat message → `subscription.deduct_chat_question()` called
+**Transaction model** (paiement) :
+- `token_pay` — référence GeniusPay (ex: `MTX-XXXXXXXX`)
+- `payment_status` — `pending` | `paid` | `failed` | `cancelled`
+- `phone_number`, `payment_method` (orange/wave/mtn/moov)
+
+**Payment + Quota flow:**
+1. User POST `/subscribe/` avec `pack_id` + `phone_number` → `Transaction` créée (`pending`), GeniusPay appelé, retourne `payment_url` + `token_pay`
+2. Webhook GeniusPay `payin.session.completed` → `Subscription` créée/upgradée, quotas cumulés si upgrade
+3. Chaque correction → `subscription.deduct_image_correction()` appelé
+4. Chaque message chat → `subscription.deduct_chat_question()` appelé
 
 ### Image Correction Workflow
 
@@ -114,8 +124,22 @@ gunicorn backend_project.wsgi:application --log-file -
 
 ## Key Files
 
-- `backend_project/settings.py` - Main settings (commented production config at bottom)
+- `backend_project/settings.py` - Main settings + config GeniusPay (`GENIUSPAY_*`, `PAYMENT_MOCK_MODE`)
 - `treatment/views.py` - Core image processing logic (~1700 lines)
 - `custom_admin/views.py` - Admin dashboard endpoints
 - `authentification/models.py` - CustomUser, OTPCode, PendingUser
-- `subscriptions/models.py` - Pack, Subscription, UsageLog, Transaction
+- `subscriptions/models.py` - Pack, Subscription, UsageLog, Transaction (+ champs paiement)
+- `subscriptions/views.py` - SubscribeToPackView, geniuspay_webhook, check_payment_status, cancel_payment
+- `subscriptions/urls.py` - Routes incluant les 3 endpoints paiement GeniusPay
+- `FLUTTER_GENIUSPAY_INTEGRATION.md` - Documentation intégration Flutter (v1.1)
+
+## Flutter App (projet lié)
+
+Chemin : `C:\Users\HP I7\Desktop\git_project\CORRECTION APP FRONT\correction_ai_app`
+
+Fichiers paiement :
+- `lib/screens/pack_detail_screen.dart` - Sélection pack + bottom sheet numéro téléphone
+- `lib/screens/payment_webview_screen.dart` - WebView GeniusPay (interception deep links wave/orange/mtn/moov)
+- `lib/screens/payment_waiting_screen.dart` - Écran attente 60s avec polling + états loading/success/failed
+- `lib/services/api_service.dart` - `subscribeToPack`, `getPaymentStatus`, `cancelPayment`
+- `android/app/src/main/AndroidManifest.xml` - `<queries>` pour deep links mobile money

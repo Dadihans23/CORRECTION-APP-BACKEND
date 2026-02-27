@@ -18,8 +18,23 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import render
 from custom_admin.views import landing_page
 
+
+# ─── Handlers d'erreur personnalisés ───
+def handler404_view(request, _exception=None):
+    return render(request, '404.html', status=404)
+
+def handler403_view(request, _exception=None):
+    return render(request, '403.html', status=403)
+
+def handler500_view(request):
+    return render(request, '404.html', status=500)
+
+handler404 = handler404_view
+handler403 = handler403_view
+handler500 = handler500_view
 
 
 urlpatterns = [

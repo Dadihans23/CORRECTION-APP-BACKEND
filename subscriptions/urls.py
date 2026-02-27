@@ -12,7 +12,8 @@ urlpatterns = [
     path('subscription-history/', views.subscription_history, name='subscription-history'),
     path('transactions/', views.TransactionListView.as_view(), name='transactions'),
     path('dashboard/', views.SubscriptionDashboardView.as_view(), name='subscription-dashboard'),
-    # === PAIEMENT MONEYFUSION ===
-    path('payment/webhook/', views.moneyfusion_webhook, name='payment-webhook'),
+    # === PAIEMENT GENIUSPAY ===
+    path('payment/webhook/', views.geniuspay_webhook, name='payment-webhook'),
     path('payment/status/<str:token_pay>/', views.check_payment_status, name='payment-status'),
+    path('payment/cancel/<str:token_pay>/', views.cancel_payment, name='payment-cancel'),
 ]

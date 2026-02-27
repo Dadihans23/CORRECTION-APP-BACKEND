@@ -6,6 +6,12 @@ app_name = 'custom_admin'
 
 urlpatterns = [
     # ===============================================
+    # AUTHENTIFICATION
+    # ===============================================
+    path('login/', views.admin_login, name='login'),
+    path('logout/', views.admin_logout, name='logout'),
+
+    # ===============================================
     # DASHBOARD & STATS
     # ===============================================
     path('', views.admin_dashboard, name='dashboard'),
