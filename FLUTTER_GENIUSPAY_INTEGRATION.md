@@ -740,4 +740,4 @@ curl -X GET http://172.20.10.2:8000/api/subscription/my-subscription/ \
 
 ---
 
-*Document généré pour le projet "Corrige Moi" — Intégration GeniusPay v1.1*
+*Document généré pour le projet "Corrige Moi" — Intégration GeniusPay v1.1* merci
