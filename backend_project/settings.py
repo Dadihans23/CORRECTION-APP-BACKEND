@@ -22,14 +22,20 @@ os.environ['DJANGO_SERVER_TIMEOUT'] = '60'
 # Clé API Gemini
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
-# MoneyFusion Payment API
-MONEYFUSION_API_URL = os.getenv('MONEYFUSION_API_URL', '')
+# GeniusPay Payment API
+GENIUSPAY_BASE_URL       = 'https://pay.genius.ci/api/v1/merchant'
+GENIUSPAY_API_KEY        = os.getenv('GENIUSPAY_API_KEY', '')
+GENIUSPAY_API_SECRET     = os.getenv('GENIUSPAY_API_SECRET', '')
+GENIUSPAY_WEBHOOK_SECRET = os.getenv('GENIUSPAY_WEBHOOK_SECRET', '')
+
+# Mode mock : simule la page de paiement en local (mettre False en production)
+PAYMENT_MOCK_MODE = False
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-)*_3xsh-gg-kg@eca5y(tbiib&bd6qi3sux=s&58$^s-9!9bv_'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 # ✅ CORS : Autoriser origines spécifiques
 ALLOWED_HOSTS = [
@@ -131,7 +137,7 @@ ROOT_URLCONF = 'backend_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -201,6 +207,9 @@ DEFAULT_CONTENT_TYPE = 'application/json; charset=utf-8'
 
 # Custom user model
 AUTH_USER_MODEL = 'authentification.CustomUser'
+
+# Redirection pour @login_required → page de connexion du dashboard custom
+LOGIN_URL = '/custom-admin/login/'
 
 
 

@@ -174,16 +174,23 @@
                     </div>
                 </nav>
 
-                <!-- User info -->
+                <!-- User info + déconnexion -->
                 <div class="p-4 border-t border-white/5">
                     <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-primary-500/20 flex items-center justify-center">
+                        <div class="w-9 h-9 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
                             <span class="text-sm font-semibold text-primary-400">{{ request.user.first_name|first }}{{ request.user.last_name|first }}</span>
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-white/90 truncate">{{ request.user.first_name }} {{ request.user.last_name }}</p>
                             <p class="text-xs text-white/40 truncate">Administrateur</p>
                         </div>
+                        <a href="{% url 'custom_admin:logout' %}"
+                           title="Se déconnecter"
+                           class="flex-shrink-0 p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
+                            </svg>
+                        </a>
                     </div>
                 </div>
             </div>

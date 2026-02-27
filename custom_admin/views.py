@@ -41,6 +41,9 @@ from django.contrib.auth import (
     hashers,
     update_session_auth_hash,
     decorators as auth_decorators,
+    authenticate,
+    login as auth_login,
+    logout as auth_logout,
 )
 from django.db.models import Max
 from django.contrib.contenttypes.models import ContentType
@@ -53,6 +56,29 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from django.contrib.auth.decorators import login_required
+from functools import wraps
+
+
+# =====================================================
+# 🔒 DÉCORATEUR DE PROTECTION ADMIN
+# =====================================================
+def staff_required(view_func):
+    """
+    Protège une vue admin :
+    - Non connecté       → redirige vers /admin/login/?next=<url>
+    - Connecté non-staff → 403 Forbidden
+    - Staff connecté     → accès autorisé
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from django.shortcuts import redirect
+            return redirect(f'/custom-admin/login/?next={request.path}')
+        if not request.user.is_staff:
+            from django.shortcuts import render as _render
+            return _render(request, '403.html', status=403)
+        return view_func(request, *args, **kwargs)
+    return wrapper
 
 
 # =====================================================
@@ -85,6 +111,47 @@ def admin_home(request):
     """Vue d'accueil pour choisir entre dashboard utilisateur et admin"""
     return render(request, 'custom_admin/admin_home.html')
 
+
+# ===============================================
+# AUTHENTIFICATION CUSTOM ADMIN
+# ===============================================
+
+def admin_login(request):
+    """Page de connexion du dashboard admin."""
+    # Déjà connecté en tant que staff → dashboard directement
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('/custom-admin/')
+
+    next_url = request.GET.get('next', '/custom-admin/')
+    error = None
+
+    if request.method == 'POST':
+        phone = request.POST.get('phone_number', '').strip()
+        password = request.POST.get('password', '')
+        next_url = request.POST.get('next', '/custom-admin/')
+
+        user = authenticate(request, username=phone, password=password)
+        if user is not None and user.is_staff:
+            auth_login(request, user)
+            return redirect(next_url)
+        elif user is not None and not user.is_staff:
+            error = "Ce compte n'a pas les droits d'administration."
+        else:
+            error = "Numéro de téléphone ou mot de passe incorrect."
+
+    return render(request, 'custom_admin/login.html', {
+        'error': error,
+        'next': next_url,
+        'year': datetime.now().year,
+    })
+
+
+def admin_logout(request):
+    """Déconnexion du dashboard admin."""
+    auth_logout(request)
+    return redirect('/custom-admin/login/')
+
+
 # ===============================================
 # DASHBOARD PRINCIPAL
 # ===============================================
@@ -92,10 +159,8 @@ def admin_home(request):
 
 
 
-@login_required
+@staff_required
 def admin_dashboard(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     # === FILTRE DATE ===
     start_date = request.GET.get('start_date')
@@ -133,20 +198,23 @@ def admin_dashboard(request):
     total_chat_questions = ChatMessage.objects.filter(role='user').filter(chat_filter).count()
     total_actions = total_image_corrections + total_chat_questions
 
-    # === REVENUS (période) ===
+    # === REVENUS (période) — uniquement les paiements confirmés ===
     revenue_period = Transaction.objects.filter(
         transaction_filter,
-        transaction_type='subscription'
+        transaction_type='subscription',
+        payment_status='paid',
     ).aggregate(total=Sum('price_paid'))['total'] or 0
 
     total_revenue = Transaction.objects.filter(
-        transaction_type='subscription'
+        transaction_type='subscription',
+        payment_status='paid',
     ).aggregate(total=Sum('price_paid'))['total'] or 0
 
     # === TOP PACKS (période) ===
     top_packs = Transaction.objects.filter(
         transaction_filter,
-        transaction_type='subscription'
+        transaction_type='subscription',
+        payment_status='paid',
     ).values('pack__name').annotate(
         sales=Count('id'),
         revenue=Sum('price_paid')
@@ -195,7 +263,7 @@ def admin_dashboard(request):
 
 
 
-@login_required
+@staff_required
 def admin_users(request):
     # RÉCUPÉRATION DES DONNÉES RÉELLES
     users = CustomUser.objects.all().order_by('-date_joined')
@@ -213,10 +281,8 @@ def admin_users(request):
 
 
 # custom_admin/views.py
-@login_required
+@staff_required
 def admin_user_create(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     if request.method == 'POST':
         phone_number = request.POST.get('phone_number', '').strip()
@@ -288,10 +354,8 @@ def admin_user_create(request):
 
 
 
-@login_required
+@staff_required
 def admin_user_detail(request, user_id):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     user = get_object_or_404(CustomUser, id=user_id)
 
@@ -308,7 +372,7 @@ def admin_user_detail(request, user_id):
 
     # === STATS UTILISATEUR ===
     total_spent = Transaction.objects.filter(
-        user=user, transaction_type='subscription'
+        user=user, transaction_type='subscription', payment_status='paid'
     ).aggregate(total=Sum('price_paid'))['total'] or 0
 
     total_image_corrections = ImageCorrection.objects.filter(user=user).count()
@@ -372,10 +436,8 @@ def admin_user_detail(request, user_id):
 
 
 
-@login_required
+@staff_required
 def admin_user_edit(request, user_id):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     user = get_object_or_404(CustomUser, id=user_id)
 
@@ -408,10 +470,8 @@ def admin_user_edit(request, user_id):
 
 
 
-@login_required
+@staff_required
 def admin_user_delete(request, user_id):
-    if not request.user.is_staff:
-        return JsonResponse({'status': 'error', 'message': 'Accès refusé.'}, status=403)
 
     user = get_object_or_404(CustomUser, id=user_id)
 
@@ -445,10 +505,8 @@ def admin_user_delete(request, user_id):
 # custom_admin/views.py
 from django.db.models import Sum
 
-@login_required
+@staff_required
 def admin_packs(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     packs = Pack.objects.all().order_by('-is_best_plan', 'price')
 
@@ -456,7 +514,8 @@ def admin_packs(request):
     for pack in packs:
         revenue = Transaction.objects.filter(
             pack=pack,
-            transaction_type='subscription'
+            transaction_type='subscription',
+            payment_status='paid',
         ).aggregate(total=Sum('price_paid'))['total'] or 0
         pack.revenue = int(revenue)  # On ajoute un attribut temporaire
 
@@ -471,10 +530,8 @@ def admin_packs(request):
 
 
 
-@login_required
+@staff_required
 def admin_pack_create(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     if request.method == 'POST':
         try:
@@ -508,14 +565,14 @@ def admin_pack_create(request):
     return render(request, 'custom_admin/admin/pack_create.html')
 
 
-@login_required
+@staff_required
 def admin_pack_detail(request, pack_id):
     pack = get_object_or_404(Pack, id=pack_id)
     
     # Stats réelles
     subscribers = pack.subscriptions.filter(is_active=True).count()
     total_revenue = Transaction.objects.filter(
-        pack=pack, transaction_type='subscription'
+        pack=pack, transaction_type='subscription', payment_status='paid'
     ).aggregate(total=Sum('price_paid'))['total'] or 0
 
     # Dernières souscriptions
@@ -530,7 +587,7 @@ def admin_pack_detail(request, pack_id):
     return render(request, 'custom_admin/admin/pack_detail.html', context)
 
 
-@login_required
+@staff_required
 def admin_pack_edit(request, pack_id):
     pack = get_object_or_404(Pack, id=pack_id)
     
@@ -557,10 +614,8 @@ def admin_pack_edit(request, pack_id):
 
 
 
-@login_required
+@staff_required
 def admin_pack_delete(request, pack_id):
-    if not request.user.is_staff:
-        return JsonResponse({'status': 'error', 'message': 'Accès refusé'}, status=403)
 
     if request.method == 'POST':
         pack = get_object_or_404(Pack, id=pack_id)
@@ -579,10 +634,8 @@ def admin_pack_delete(request, pack_id):
 
 
 # custom_admin/views.py
-@login_required
+@staff_required
 def admin_subscriptions(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     # === FILTRES ===
     search = request.GET.get('search', '').strip()
@@ -645,7 +698,7 @@ def admin_subscriptions(request):
     return render(request, 'custom_admin/admin/subscriptions.html', context)
 
 
-@login_required
+@staff_required
 def admin_subscription_detail(request, subscription_id):
     sub = get_object_or_404(
         Subscription.objects.select_related('user', 'pack'),
@@ -673,7 +726,7 @@ def admin_subscription_detail(request, subscription_id):
     return render(request, 'custom_admin/admin/subscription_detail.html', context)
 
 
-@login_required
+@staff_required
 def admin_subscription_edit(request, subscription_id):
     sub = get_object_or_404(Subscription, id=subscription_id)
     
@@ -694,7 +747,7 @@ def admin_subscription_edit(request, subscription_id):
     })
 
 
-@login_required
+@staff_required
 def admin_subscription_create(request):
     if request.method == 'POST':
         try:
@@ -739,10 +792,8 @@ from decimal import Decimal
 # ===============================================
 # STATS FACTURATION
 # ===============================================
-@login_required
+@staff_required
 def admin_billing_stats(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     today = timezone.now()
     monthly_revenue = []
@@ -757,6 +808,7 @@ def admin_billing_stats(request):
 
         revenue = Transaction.objects.filter(
             transaction_type='subscription',
+            payment_status='paid',
             created_at__gte=month_start,
             created_at__lte=month_end
         ).aggregate(total=Sum('price_paid'))['total'] or Decimal('0.00')
@@ -766,7 +818,7 @@ def admin_billing_stats(request):
 
     # === TOP 5 UTILISATEURS PAR REVENUS ===
     top_revenue_users = Transaction.objects.filter(
-        transaction_type='subscription'
+        transaction_type='subscription', payment_status='paid'
     ).values('user__phone_number', 'pack__name').annotate(
         total_revenue=Sum('price_paid')
     ).order_by('-total_revenue')[:5]
@@ -782,7 +834,7 @@ def admin_billing_stats(request):
     # === MÉTHODES DE PAIEMENT (simulé car pas de champ) ===
     # Tu peux ajouter un champ `payment_method` dans Transaction plus tard
     payment_methods = {
-        'mobile_money': Transaction.objects.filter(transaction_type='subscription').count(),
+        'mobile_money': Transaction.objects.filter(transaction_type='subscription', payment_status='paid').count(),
         'card': 0,
         'bank': 0,
         'admin': 0
@@ -798,9 +850,10 @@ def admin_billing_stats(request):
     }
 
     # === STATS GLOBAUX ===
-    total_revenue = float(Transaction.objects.filter(transaction_type='subscription').aggregate(total=Sum('price_paid'))['total'] or 0)
+    total_revenue = float(Transaction.objects.filter(transaction_type='subscription', payment_status='paid').aggregate(total=Sum('price_paid'))['total'] or 0)
     this_month_revenue = float(Transaction.objects.filter(
         transaction_type='subscription',
+        payment_status='paid',
         created_at__month=today.month,
         created_at__year=today.year
     ).aggregate(total=Sum('price_paid'))['total'] or 0)
@@ -808,6 +861,7 @@ def admin_billing_stats(request):
     last_month = today.replace(day=1) - timedelta(days=1)
     last_month_revenue = float(Transaction.objects.filter(
         transaction_type='subscription',
+        payment_status='paid',
         created_at__month=last_month.month,
         created_at__year=last_month.year
     ).aggregate(total=Sum('price_paid'))['total'] or 0)
@@ -833,10 +887,8 @@ def admin_billing_stats(request):
 # STATS UTILISATEURS
 # ===============================================
 
-@login_required
+@staff_required
 def admin_user_stats(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     now = timezone.now()
     this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -960,10 +1012,8 @@ def admin_user_stats(request):
 
 
 
-@login_required
+@staff_required
 def admin_analytics(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     now = timezone.now()
     period = int(request.GET.get('period', 7))  # 7, 30 ou 90
@@ -977,7 +1027,7 @@ def admin_analytics(request):
     new_users_last_month = CustomUser.objects.filter(date_joined__gte=last_month, date_joined__lt=this_month).count()
     user_growth = round(((new_users_this_month - new_users_last_month) / new_users_last_month * 100), 1) if new_users_last_month else 100
 
-    total_revenue = float(Transaction.objects.filter(transaction_type='subscription').aggregate(t=Sum('price_paid'))['t'] or 0)
+    total_revenue = float(Transaction.objects.filter(transaction_type='subscription', payment_status='paid').aggregate(t=Sum('price_paid'))['t'] or 0)
 
     # Rétention 30j
     users_30d_ago = CustomUser.objects.filter(date_joined__gte=now - timedelta(days=30))
@@ -1001,7 +1051,7 @@ def admin_analytics(request):
 
         img_count = ImageCorrection.objects.filter(created_at__date=date).count()
         chat_count = ChatMessage.objects.filter(role='user', created_at__date=date).count()
-        rev = Transaction.objects.filter(created_at__date=date, transaction_type='subscription').aggregate(r=Sum('price_paid'))['r'] or 0
+        rev = Transaction.objects.filter(created_at__date=date, transaction_type='subscription', payment_status='paid').aggregate(r=Sum('price_paid'))['r'] or 0
 
         daily_images.append(img_count)
         daily_chat.append(chat_count)
@@ -1010,7 +1060,8 @@ def admin_analytics(request):
     # === TOP PACKS ===
     top_packs = Transaction.objects.filter(
         created_at__gte=days_ago,
-        transaction_type='subscription'
+        transaction_type='subscription',
+        payment_status='paid',
     ).values('pack__name').annotate(
         sales=Count('id'),
         revenue=Sum('price_paid')
@@ -1075,10 +1126,8 @@ def admin_analytics(request):
 # ===============================================
 # RAPPORTS
 # ===============================================
-@login_required
+@staff_required
 def admin_reports(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     now = timezone.now()
 
@@ -1087,9 +1136,9 @@ def admin_reports(request):
         {
             'name': 'Rapport mensuel des ventes',
             'type': 'sales',
-            'last_generated': Transaction.objects.filter(transaction_type='subscription').aggregate(m=Max('created_at'))['m'] or now - timedelta(days=1),
-            'total_sales': Transaction.objects.filter(transaction_type='subscription').count(),
-            'total_revenue': float(Transaction.objects.filter(transaction_type='subscription').aggregate(t=Sum('price_paid'))['t'] or 0)
+            'last_generated': Transaction.objects.filter(transaction_type='subscription', payment_status='paid').aggregate(m=Max('created_at'))['m'] or now - timedelta(days=1),
+            'total_sales': Transaction.objects.filter(transaction_type='subscription', payment_status='paid').count(),
+            'total_revenue': float(Transaction.objects.filter(transaction_type='subscription', payment_status='paid').aggregate(t=Sum('price_paid'))['t'] or 0)
         },
         {
             'name': 'Analyse corrections photo',
@@ -1109,7 +1158,7 @@ def admin_reports(request):
 
     # === HISTORIQUE ===
     report_history = []
-    recent_transactions = Transaction.objects.filter(transaction_type='subscription').order_by('-created_at')[:5]
+    recent_transactions = Transaction.objects.filter(transaction_type='subscription', payment_status='paid').order_by('-created_at')[:5]
     for i, t in enumerate(recent_transactions, 1):
         report_history.append({
             'id': i,
@@ -1150,7 +1199,7 @@ def generate_sales_report(request):
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=18, spaceAfter=30)
 
-    transactions = Transaction.objects.filter(transaction_type='subscription').order_by('-created_at')
+    transactions = Transaction.objects.filter(transaction_type='subscription', payment_status='paid').order_by('-created_at')
     total = float(transactions.aggregate(t=Sum('price_paid'))['t'] or 0)
 
     story.append(Paragraph("RAPPORT VENTES - CORRIGE MOI", title_style))
@@ -1234,11 +1283,9 @@ def generate_users_report(request):
 # ===============================================
 # TÉLÉCHARGEMENT PAR TYPE
 # ===============================================
-@login_required
+@staff_required
 def download_report(request, report_type):
     """Télécharge un rapport selon le type"""
-    if not request.user.is_staff:
-        return HttpResponse("Accès refusé", status=403)
 
     if report_type == 'sales':
         return generate_sales_report(request)
@@ -1253,11 +1300,9 @@ def download_report(request, report_type):
 # ===============================================
 # ZIP TOUS LES RAPPORTS
 # ===============================================
-@login_required
+@staff_required
 def export_all_reports(request):
     """Génère un ZIP avec les 3 rapports"""
-    if not request.user.is_staff:
-        return HttpResponse("Accès refusé", status=403)
 
     buffer = io.BytesIO()
     zip_file = zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED)
@@ -1269,7 +1314,7 @@ def export_all_reports(request):
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=18, spaceAfter=30)
 
-    transactions = Transaction.objects.filter(transaction_type='subscription').order_by('-created_at')
+    transactions = Transaction.objects.filter(transaction_type='subscription', payment_status='paid').order_by('-created_at')
     total = float(transactions.aggregate(t=Sum('price_paid'))['t'] or 0)
 
     story.append(Paragraph("RAPPORT VENTES - CORRIGE MOI", title_style))
@@ -1356,10 +1401,8 @@ def export_all_reports(request):
 
 
 
-@login_required
+@staff_required
 def admin_settings(request):
-    if not request.user.is_staff:
-        return render(request, '403.html', status=403)
 
     settings = SiteSettings.get_instance()
 
@@ -1399,10 +1442,8 @@ def admin_settings(request):
 # 📸 HISTORIQUE DES CORRECTIONS
 # =====================================================
 
-@login_required
+@staff_required
 def admin_corrections_history(request):
-    if not request.user.is_staff:
-        return render(request, 'custom_admin/403.html', status=403)
 
     corrections = CorrectionHistory.objects.select_related('user').order_by('-created_at')
 
@@ -1468,10 +1509,8 @@ def admin_corrections_history(request):
     })
 
 
-@login_required
+@staff_required
 def admin_correction_detail(request, pk):
-    if not request.user.is_staff:
-        return render(request, 'custom_admin/403.html', status=403)
 
     correction = get_object_or_404(CorrectionHistory.objects.select_related('user'), pk=pk)
     return render(request, 'custom_admin/admin/correction_detail.html', {
@@ -1483,10 +1522,8 @@ def admin_correction_detail(request, pk):
 # 💬 CONVERSATIONS CHATBOT
 # =====================================================
 
-@login_required
+@staff_required
 def admin_conversations(request):
-    if not request.user.is_staff:
-        return render(request, 'custom_admin/403.html', status=403)
 
     sessions = ChatSession.objects.select_related('user').annotate(
         message_count=Count('messages')
@@ -1517,10 +1554,8 @@ def admin_conversations(request):
     })
 
 
-@login_required
+@staff_required
 def admin_conversation_detail(request, session_id):
-    if not request.user.is_staff:
-        return render(request, 'custom_admin/403.html', status=403)
 
     session  = get_object_or_404(ChatSession.objects.select_related('user'), id=session_id)
     messages_qs = session.messages.order_by('created_at')
@@ -1534,10 +1569,8 @@ def admin_conversation_detail(request, session_id):
 # 💰 PAIEMENTS & REVENUS
 # =====================================================
 
-@login_required
+@staff_required
 def admin_payments(request):
-    if not request.user.is_staff:
-        return render(request, 'custom_admin/403.html', status=403)
 
     transactions = Transaction.objects.select_related('user', 'pack').order_by('-created_at')
 
@@ -1570,18 +1603,20 @@ def admin_payments(request):
 
     now = timezone.now()
 
-    total_revenue      = Transaction.objects.aggregate(t=Sum('price_paid'))['t'] or 0
+    total_revenue      = Transaction.objects.filter(payment_status='paid').aggregate(t=Sum('price_paid'))['t'] or 0
     this_month_revenue = Transaction.objects.filter(
+        payment_status='paid',
         created_at__year=now.year, created_at__month=now.month
     ).aggregate(t=Sum('price_paid'))['t'] or 0
-    total_tx  = Transaction.objects.count()
-    today_tx  = Transaction.objects.filter(created_at__date=now.date()).count()
+    total_tx  = Transaction.objects.filter(payment_status='paid').count()
+    today_tx  = Transaction.objects.filter(payment_status='paid', created_at__date=now.date()).count()
 
     # Graphique : 6 derniers mois
     monthly_data = []
     for i in range(5, -1, -1):
         month_start = (now.replace(day=1) - timedelta(days=30 * i)).replace(day=1)
         rev = Transaction.objects.filter(
+            payment_status='paid',
             created_at__year=month_start.year,
             created_at__month=month_start.month
         ).aggregate(t=Sum('price_paid'))['t'] or 0
