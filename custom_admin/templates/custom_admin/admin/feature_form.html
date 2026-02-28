@@ -1,0 +1,109 @@
+{% extends "custom_admin/base_admin.html" %}
+
+{% block title %}{% if action == 'edit' %}Modifier la fonctionnalité{% else %}Nouvelle fonctionnalité{% endif %}{% endblock %}
+{% block page_title %}{% if action == 'edit' %}Modifier la fonctionnalité{% else %}Nouvelle fonctionnalité{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <div class="glass-card rounded-xl border border-white/[0.07]">
+        <div class="px-6 py-4 border-b border-white/5">
+            <p class="text-sm text-white/50">Une fonctionnalité du catalogue peut être assignée à n'importe quel pack.</p>
+        </div>
+
+        <form method="post" class="p-6 space-y-5">
+            {% csrf_token %}
+
+            {% if action == 'edit' %}
+            <!-- Clé en lecture seule lors de l'édition -->
+            <div>
+                <label class="block text-sm font-medium text-white/70 mb-1">Clé technique</label>
+                <div class="dark-input block w-full rounded-lg text-sm px-3 py-2 text-white/40 cursor-not-allowed">{{ feature.key }}</div>
+            </div>
+            {% else %}
+            <!-- Clé modifiable à la création -->
+            <div>
+                <label for="key" class="block text-sm font-medium text-white/70 mb-1">
+                    Clé technique <span class="text-red-500">*</span>
+                    <span class="text-white/30 font-normal ml-1">(ex: export_pdf, history_days)</span>
+                </label>
+                <input type="text" name="key" id="key" required
+                       pattern="[a-z0-9_]+"
+                       title="Minuscules, chiffres et underscores uniquement"
+                       placeholder="Ex: export_pdf"
+                       class="dark-input block w-full rounded-lg text-sm px-3 py-2">
+            </div>
+            {% endif %}
+
+            <div>
+                <label for="label" class="block text-sm font-medium text-white/70 mb-1">Libellé affiché <span class="text-red-500">*</span></label>
+                <input type="text" name="label" id="label" required
+                       value="{% if action == 'edit' %}{{ feature.label }}{% endif %}"
+                       placeholder="Ex: Export PDF des corrections"
+                       class="dark-input block w-full rounded-lg text-sm px-3 py-2">
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-white/70 mb-1">Description</label>
+                <textarea name="description" id="description" rows="2"
+                          class="dark-input block w-full rounded-lg text-sm px-3 py-2"
+                          placeholder="Décrivez ce que cette fonctionnalité active ou contrôle...">{% if action == 'edit' %}{{ feature.description }}{% endif %}</textarea>
+            </div>
+
+            <div>
+                <label for="feature_type" class="block text-sm font-medium text-white/70 mb-1">Type de valeur <span class="text-red-500">*</span></label>
+                <select name="feature_type" id="feature_type" onchange="updateDefaultField()"
+                        class="dark-input block w-full rounded-lg text-sm px-3 py-2">
+                    <option value="boolean" {% if action == 'edit' and feature.feature_type == 'boolean' %}selected{% endif %}>Oui / Non (booléen)</option>
+                    <option value="integer" {% if action == 'edit' and feature.feature_type == 'integer' %}selected{% endif %}>Nombre entier (jours, etc.)</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="default_value" class="block text-sm font-medium text-white/70 mb-1">Valeur par défaut <span class="text-red-500">*</span></label>
+                <!-- Booléen -->
+                <select name="default_value" id="default_bool"
+                        class="dark-input block w-full rounded-lg text-sm px-3 py-2">
+                    <option value="false" {% if action == 'edit' and feature.default_value == 'false' %}selected{% endif %}>false (désactivé)</option>
+                    <option value="true" {% if action == 'edit' and feature.default_value == 'true' %}selected{% endif %}>true (activé)</option>
+                </select>
+                <!-- Entier -->
+                <input type="number" name="default_value" id="default_int" min="0"
+                       value="{% if action == 'edit' and feature.feature_type == 'integer' %}{{ feature.default_value }}{% else %}0{% endif %}"
+                       class="dark-input block w-full rounded-lg text-sm px-3 py-2 hidden">
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+                <a href="{% url 'custom_admin:features' %}" class="px-4 py-2 text-sm font-medium bg-white/5 border border-white/10 text-white/70 rounded-lg hover:bg-white/10 transition-colors">
+                    Annuler
+                </a>
+                <button type="submit" class="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+                    {% if action == 'edit' %}Mettre à jour{% else %}Créer{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateDefaultField() {
+    const type = document.getElementById('feature_type').value;
+    const boolEl = document.getElementById('default_bool');
+    const intEl  = document.getElementById('default_int');
+    if (type === 'integer') {
+        boolEl.disabled = true; boolEl.classList.add('hidden');
+        boolEl.name = '';
+        intEl.disabled  = false; intEl.classList.remove('hidden');
+        intEl.name = 'default_value';
+    } else {
+        intEl.disabled  = true; intEl.classList.add('hidden');
+        intEl.name = '';
+        boolEl.disabled = false; boolEl.classList.remove('hidden');
+        boolEl.name = 'default_value';
+    }
+}
+// Init au chargement
+updateDefaultField();
+</script>
+{% endblock %}

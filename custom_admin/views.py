@@ -90,10 +90,11 @@ from treatment.models import (
     CorrectionHistory,
     ChatSession,
     ChatMessage,
-    SiteSettings
-    
+    SiteSettings,
+    SupportTicket,
+    SupportMessage,
 )
-from subscriptions.models import Pack, Subscription, UsageLog, Transaction
+from subscriptions.models import Pack, Subscription, UsageLog, Transaction, Feature, PackFeature
 
 # =====================================================
 # ⚙️ OTHER SETTINGS
@@ -535,7 +536,7 @@ def admin_pack_create(request):
 
     if request.method == 'POST':
         try:
-            # Récupération sécurisée des features
+            # Récupération sécurisée des features d'affichage (texte libre)
             features_raw = request.POST.get('features', '[]')
             try:
                 features = json.loads(features_raw) if features_raw else []
@@ -556,13 +557,17 @@ def admin_pack_create(request):
                 features=features
             )
 
+            # Restrictions fonctionnelles (PackFeature)
+            _save_pack_features(pack, request.POST)
+
             messages.success(request, f'Pack "{pack.name}" créé avec succès !')
             return redirect('custom_admin:pack_detail', pack_id=pack.id)
 
         except Exception as e:
             messages.error(request, f'Erreur : {str(e)}')
 
-    return render(request, 'custom_admin/admin/pack_create.html')
+    all_features = Feature.objects.all()
+    return render(request, 'custom_admin/admin/pack_create.html', {'all_features': all_features})
 
 
 @staff_required
@@ -590,11 +595,14 @@ def admin_pack_detail(request, pack_id):
 @staff_required
 def admin_pack_edit(request, pack_id):
     pack = get_object_or_404(Pack, id=pack_id)
-    
+
     if request.method == 'POST':
         features = request.POST.get('features', '[]')
         if isinstance(features, str):
-            features = json.loads(features)
+            try:
+                features = json.loads(features)
+            except json.JSONDecodeError:
+                features = []
 
         pack.name = request.POST['name']
         pack.price = request.POST['price']
@@ -607,10 +615,19 @@ def admin_pack_edit(request, pack_id):
         pack.features = features
         pack.save()
 
+        # Restrictions fonctionnelles (PackFeature)
+        _save_pack_features(pack, request.POST)
+
         messages.success(request, f'Pack mis à jour !')
         return redirect('custom_admin:pack_detail', pack_id=pack.id)
 
-    return render(request, 'custom_admin/admin/pack_edit.html', {'pack': pack})
+    all_features = Feature.objects.all()
+    current_pack_features = {pf.feature.key: pf.value for pf in pack.pack_features.select_related('feature')}
+    return render(request, 'custom_admin/admin/pack_edit.html', {
+        'pack': pack,
+        'all_features': all_features,
+        'current_pack_features_json': json.dumps(current_pack_features),
+    })
 
 
 
@@ -627,6 +644,87 @@ def admin_pack_delete(request, pack_id):
         })
 
     return JsonResponse({'status': 'error', 'message': 'Méthode non autorisée'}, status=405)
+
+
+# -----------------------------------------------
+# Helper : sauvegarde des PackFeature depuis POST
+# -----------------------------------------------
+def _save_pack_features(pack, post_data):
+    """
+    Lit les champs de la forme `feat_<key>` dans POST et
+    crée/met à jour les PackFeature correspondants.
+    Pour les booléens : présence du champ = true, absence = false.
+    Pour les entiers : valeur directe.
+    """
+    all_features = Feature.objects.all()
+    for feature in all_features:
+        field_name = f'feat_{feature.key}'
+        if feature.feature_type == 'boolean':
+            value = 'true' if field_name in post_data else 'false'
+        else:
+            raw = post_data.get(field_name, '').strip()
+            value = raw if raw else feature.default_value
+        PackFeature.objects.update_or_create(
+            pack=pack, feature=feature,
+            defaults={'value': value},
+        )
+
+
+# ===============================================
+# FONCTIONNALITÉS (catalogue)
+# ===============================================
+
+@staff_required
+def admin_features(request):
+    features = Feature.objects.all()
+    return render(request, 'custom_admin/admin/features.html', {'features': features})
+
+
+@staff_required
+def admin_feature_create(request):
+    if request.method == 'POST':
+        try:
+            Feature.objects.create(
+                key=request.POST['key'].strip().lower().replace(' ', '_'),
+                label=request.POST['label'].strip(),
+                description=request.POST.get('description', '').strip(),
+                feature_type=request.POST.get('feature_type', 'boolean'),
+                default_value=request.POST.get('default_value', 'false').strip(),
+            )
+            messages.success(request, 'Fonctionnalité créée !')
+        except Exception as e:
+            messages.error(request, f'Erreur : {str(e)}')
+        return redirect('custom_admin:features')
+    return render(request, 'custom_admin/admin/feature_form.html', {'action': 'create'})
+
+
+@staff_required
+def admin_feature_edit(request, feature_id):
+    feature = get_object_or_404(Feature, id=feature_id)
+    if request.method == 'POST':
+        try:
+            feature.label = request.POST['label'].strip()
+            feature.description = request.POST.get('description', '').strip()
+            feature.feature_type = request.POST.get('feature_type', 'boolean')
+            feature.default_value = request.POST.get('default_value', 'false').strip()
+            feature.save()
+            messages.success(request, 'Fonctionnalité mise à jour !')
+        except Exception as e:
+            messages.error(request, f'Erreur : {str(e)}')
+        return redirect('custom_admin:features')
+    return render(request, 'custom_admin/admin/feature_form.html', {
+        'feature': feature, 'action': 'edit',
+    })
+
+
+@staff_required
+def admin_feature_delete(request, feature_id):
+    if request.method == 'POST':
+        feature = get_object_or_404(Feature, id=feature_id)
+        feature.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=405)
+
 
 # ===============================================
 # ABONNEMENTS
@@ -1640,6 +1738,62 @@ def admin_payments(request):
         'start_date': start_date,
         'end_date': end_date,
     })
+
+
+# =====================================================
+# SUPPORT TICKETS
+# =====================================================
+
+@staff_required
+def admin_support_tickets(request):
+    tickets = SupportTicket.objects.select_related('user').prefetch_related('messages')
+    status_filter = request.GET.get('status', '')
+    priority_filter = request.GET.get('priority', '')
+    if status_filter:
+        tickets = tickets.filter(status=status_filter)
+    if priority_filter == '1':
+        tickets = tickets.filter(is_priority=True)
+
+    # Stats rapides
+    open_count = SupportTicket.objects.filter(status='open').count()
+    inprogress_count = SupportTicket.objects.filter(status='in_progress').count()
+    priority_count = SupportTicket.objects.filter(is_priority=True).exclude(status='closed').count()
+
+    paginator = Paginator(tickets, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'custom_admin/admin/support_tickets.html', {
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+        'priority_filter': priority_filter,
+        'open_count': open_count,
+        'inprogress_count': inprogress_count,
+        'priority_count': priority_count,
+    })
+
+
+@staff_required
+def admin_support_ticket_detail(request, ticket_id):
+    ticket = get_object_or_404(SupportTicket, id=ticket_id)
+    if request.method == 'POST':
+        action = request.POST.get('action', 'reply')
+        if action == 'reply':
+            content = request.POST.get('content', '').strip()
+            if content:
+                SupportMessage.objects.create(ticket=ticket, sender_type='admin', content=content)
+                ticket.status = 'in_progress'
+                ticket.save(update_fields=['status', 'updated_at'])
+                messages.success(request, 'Réponse envoyée.')
+        elif action == 'close':
+            ticket.status = 'closed'
+            ticket.save(update_fields=['status', 'updated_at'])
+            messages.success(request, 'Ticket fermé.')
+        elif action == 'reopen':
+            ticket.status = 'open'
+            ticket.save(update_fields=['status', 'updated_at'])
+            messages.success(request, 'Ticket rouvert.')
+        return redirect('custom_admin:support_ticket_detail', ticket_id=ticket_id)
+
+    return render(request, 'custom_admin/admin/support_ticket_detail.html', {'ticket': ticket})
 
 
 # =====================================================

@@ -39,6 +39,14 @@ urlpatterns = [
     path('pack/<int:pack_id>/delete/', views.admin_pack_delete, name='pack_delete'),
 
     # ===============================================
+    # FONCTIONNALITÉS CATALOGUE
+    # ===============================================
+    path('features/', views.admin_features, name='features'),
+    path('feature/create/', views.admin_feature_create, name='feature_create'),
+    path('feature/<int:feature_id>/edit/', views.admin_feature_edit, name='feature_edit'),
+    path('feature/<int:feature_id>/delete/', views.admin_feature_delete, name='feature_delete'),
+
+    # ===============================================
     # ABONNEMENTS
     # ===============================================
     path('subscriptions/', views.admin_subscriptions, name='subscriptions'),
@@ -69,4 +77,10 @@ urlpatterns = [
     # PAIEMENTS & REVENUS
     # ===============================================
     path('payments/', views.admin_payments, name='payments'),
+
+    # ===============================================
+    # SUPPORT TICKETS
+    # ===============================================
+    path('support/', views.admin_support_tickets, name='support_tickets'),
+    path('support/<int:ticket_id>/', views.admin_support_ticket_detail, name='support_ticket_detail'),
 ]

@@ -63,6 +63,18 @@ class Pack(models.Model):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    def get_feature(self, key, default=None):
+        """Retourne la valeur parsée d'une feature pour ce pack."""
+        try:
+            pf = self.pack_features.select_related('feature').get(feature__key=key)
+            return pf.get_value()
+        except Exception:
+            try:
+                feature = Feature.objects.get(key=key)
+                return feature.parse_value(feature.default_value)
+            except Exception:
+                return default
+
     @property
     def subscribers_count(self):
         return self.subscriptions.filter(is_active=True).count()
@@ -194,4 +206,54 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.user.phone_number} → {self.pack.name} ({self.get_transaction_type_display()}) [{self.payment_status}]"
-    
+
+
+# ==================== FEATURE CATALOG ====================
+class Feature(models.Model):
+    FEATURE_TYPES = [
+        ('boolean', 'Oui / Non'),
+        ('integer', 'Nombre (jours, etc.)'),
+    ]
+
+    key = models.CharField(max_length=50, unique=True)
+    label = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    feature_type = models.CharField(max_length=20, choices=FEATURE_TYPES, default='boolean')
+    default_value = models.CharField(max_length=100, default='false',
+                                     help_text="'true'/'false' pour boolean, nombre pour integer")
+
+    class Meta:
+        ordering = ['label']
+        verbose_name = "Fonctionnalité"
+        verbose_name_plural = "Fonctionnalités catalogue"
+
+    def parse_value(self, raw_value):
+        if self.feature_type == 'boolean':
+            return str(raw_value).lower() in ('true', '1', 'yes')
+        elif self.feature_type == 'integer':
+            try:
+                return int(raw_value)
+            except (ValueError, TypeError):
+                return 0
+        return raw_value
+
+    def __str__(self):
+        return f"{self.label} ({self.key})"
+
+
+# ==================== PACK ↔ FEATURE (through) ====================
+class PackFeature(models.Model):
+    pack = models.ForeignKey(Pack, on_delete=models.CASCADE, related_name='pack_features')
+    feature = models.ForeignKey(Feature, on_delete=models.CASCADE, related_name='pack_features')
+    value = models.CharField(max_length=100)
+
+    class Meta:
+        unique_together = ('pack', 'feature')
+        verbose_name = "Feature du pack"
+        verbose_name_plural = "Features du pack"
+
+    def get_value(self):
+        return self.feature.parse_value(self.value)
+
+    def __str__(self):
+        return f"{self.pack.name} → {self.feature.label}: {self.value}"

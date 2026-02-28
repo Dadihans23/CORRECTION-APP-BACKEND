@@ -3,14 +3,24 @@ from rest_framework import serializers
 from .models import Pack, Subscription, UsageLog , Transaction
 
 class PackSerializer(serializers.ModelSerializer):
+    pack_features = serializers.SerializerMethodField()
+
     class Meta:
         model = Pack
         fields = [
             'id', 'name', 'slug', 'price', 'description', 'features',
             'image_corrections_limit', 'chat_questions_limit',
-            'duration', 'is_best_plan', 'subscribers_count'
+            'duration', 'is_best_plan', 'subscribers_count',
+            'pack_features',
         ]
-        read_only_fields = ['subscribers_count']
+        read_only_fields = ['subscribers_count', 'pack_features']
+
+    def get_pack_features(self, obj):
+        """Retourne un dict {key: value_str} des restrictions fonctionnelles."""
+        return {
+            pf.feature.key: pf.value
+            for pf in obj.pack_features.select_related('feature')
+        }
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     pack = PackSerializer(read_only=True)

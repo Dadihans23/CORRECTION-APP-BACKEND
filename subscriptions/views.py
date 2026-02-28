@@ -373,6 +373,33 @@ def cancel_payment(request, token_pay):
     return Response({'success': True})
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_export_permission(request):
+    """
+    GET : Vérifie si l'utilisateur peut exporter ses corrections en PDF.
+    Retourne 403 si la feature export_pdf n'est pas activée sur son pack.
+    """
+    subscription = (
+        request.user.subscriptions
+        .filter(is_active=True)
+        .select_related('pack')
+        .order_by('-created_at')
+        .first()
+    )
+    if not subscription:
+        return Response({'success': False, 'message': 'Aucun abonnement actif.'}, status=status.HTTP_403_FORBIDDEN)
+
+    can_export = subscription.pack.get_feature('export_pdf', default=False)
+    if not can_export:
+        return Response({
+            'success': False,
+            'message': 'L\'export PDF n\'est pas inclus dans votre pack actuel.'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    return Response({'success': True, 'message': 'Export PDF autorisé.'})
+
+
 class MySubscriptionView(generics.RetrieveAPIView):
     """
     GET : Récupérer l'abonnement actif de l'utilisateur

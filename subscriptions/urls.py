@@ -16,4 +16,6 @@ urlpatterns = [
     path('payment/webhook/', views.geniuspay_webhook, name='payment-webhook'),
     path('payment/status/<str:token_pay>/', views.check_payment_status, name='payment-status'),
     path('payment/cancel/<str:token_pay>/', views.cancel_payment, name='payment-cancel'),
+    # === RESTRICTIONS ===
+    path('features/export-permission/', views.check_export_permission, name='export-permission'),
 ]

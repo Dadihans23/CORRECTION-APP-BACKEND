@@ -1,0 +1,95 @@
+{% extends "custom_admin/base_admin.html" %}
+
+{% block title %}Fonctionnalités{% endblock %}
+{% block page_title %}Catalogue des fonctionnalités{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <p class="text-sm text-white/50">Ces fonctionnalités sont assignables à chaque pack pour contrôler ce que les utilisateurs peuvent faire.</p>
+        <a href="{% url 'custom_admin:feature_create' %}"
+           class="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nouvelle fonctionnalité
+        </a>
+    </div>
+
+    <!-- Messages -->
+    {% for message in messages %}
+    <div class="px-4 py-3 rounded-lg text-sm {% if message.tags == 'success' %}bg-green-500/10 border border-green-500/20 text-green-400{% else %}bg-red-500/10 border border-red-500/20 text-red-400{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+
+    <!-- Table -->
+    <div class="glass-card rounded-xl border border-white/[0.07] overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-white/5">
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Libellé</th>
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Clé technique</th>
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Type</th>
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Valeur par défaut</th>
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Description</th>
+                    <th class="px-4 py-3 text-right text-white/50 font-medium">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for feature in features %}
+                <tr class="hover:bg-white/[0.02] transition-colors">
+                    <td class="px-4 py-3 font-medium text-white">{{ feature.label }}</td>
+                    <td class="px-4 py-3">
+                        <code class="text-xs bg-white/5 border border-white/10 rounded px-2 py-0.5 text-primary-400">{{ feature.key }}</code>
+                    </td>
+                    <td class="px-4 py-3 text-white/60">
+                        {% if feature.feature_type == 'boolean' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400">Oui / Non</span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-purple-500/10 border border-purple-500/20 text-purple-400">Nombre</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-white/60 font-mono text-xs">{{ feature.default_value }}</td>
+                    <td class="px-4 py-3 text-white/50 text-xs max-w-xs truncate">{{ feature.description|default:"—" }}</td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <a href="{% url 'custom_admin:feature_edit' feature_id=feature.id %}"
+                               class="px-3 py-1 text-xs font-medium bg-white/5 border border-white/10 text-white/70 rounded hover:bg-white/10 transition-colors">
+                                Modifier
+                            </a>
+                            <button onclick="deleteFeature({{ feature.id }}, '{{ feature.label|escapejs }}')"
+                                    class="px-3 py-1 text-xs font-medium bg-red-500/10 border border-red-500/20 text-red-400 rounded hover:bg-red-500/20 transition-colors">
+                                Supprimer
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-white/30 text-sm">Aucune fonctionnalité dans le catalogue.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteFeature(id, label) {
+    if (!confirm(`Supprimer la fonctionnalité "${label}" ?\nElle sera retirée de tous les packs.`)) return;
+    fetch(`/custom-admin/feature/${id}/delete/`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}'},
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'success') location.reload();
+    });
+}
+</script>
+{% endblock %}

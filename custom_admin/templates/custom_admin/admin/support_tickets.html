@@ -1,0 +1,111 @@
+{% extends "custom_admin/base_admin.html" %}
+{% block title %}Support{% endblock %}
+{% block page_title %}Tickets Support{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Stats rapides -->
+    <div class="grid grid-cols-3 gap-4">
+        <div class="glass-card rounded-xl border border-white/[0.07] p-4 text-center">
+            <p class="text-2xl font-bold text-orange-400">{{ open_count }}</p>
+            <p class="text-xs text-white/40 mt-1">Ouverts</p>
+        </div>
+        <div class="glass-card rounded-xl border border-white/[0.07] p-4 text-center">
+            <p class="text-2xl font-bold text-blue-400">{{ inprogress_count }}</p>
+            <p class="text-xs text-white/40 mt-1">En cours</p>
+        </div>
+        <div class="glass-card rounded-xl border border-white/[0.07] p-4 text-center">
+            <p class="text-2xl font-bold text-yellow-400">{{ priority_count }}</p>
+            <p class="text-xs text-white/40 mt-1">Prioritaires actifs</p>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <form method="get" class="flex items-center gap-3 flex-wrap">
+        <select name="status" onchange="this.form.submit()"
+                class="dark-input rounded-lg text-sm px-3 py-2">
+            <option value="" {% if not status_filter %}selected{% endif %}>Tous les statuts</option>
+            <option value="open"        {% if status_filter == 'open' %}selected{% endif %}>Ouverts</option>
+            <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>En cours</option>
+            <option value="closed"      {% if status_filter == 'closed' %}selected{% endif %}>Fermés</option>
+        </select>
+        <select name="priority" onchange="this.form.submit()"
+                class="dark-input rounded-lg text-sm px-3 py-2">
+            <option value="" {% if not priority_filter %}selected{% endif %}>Tous</option>
+            <option value="1" {% if priority_filter == '1' %}selected{% endif %}>⭐ Prioritaires seulement</option>
+        </select>
+    </form>
+
+    <!-- Table -->
+    <div class="glass-card rounded-xl border border-white/[0.07] overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-white/5">
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">#</th>
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Utilisateur</th>
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Sujet</th>
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Statut</th>
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Msgs</th>
+                    <th class="px-4 py-3 text-left text-white/50 font-medium">Mis à jour</th>
+                    <th class="px-4 py-3 text-right text-white/50 font-medium">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for ticket in page_obj %}
+                <tr class="hover:bg-white/[0.02] transition-colors {% if ticket.is_priority %}border-l-2 border-yellow-500{% endif %}">
+                    <td class="px-4 py-3 text-white/40 font-mono text-xs">
+                        #{{ ticket.id }}
+                        {% if ticket.is_priority %}<span class="ml-1">⭐</span>{% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <p class="text-white/80 text-xs font-medium">{{ ticket.user.phone_number }}</p>
+                        {% if ticket.user.first_name %}
+                        <p class="text-white/40 text-xs">{{ ticket.user.first_name }} {{ ticket.user.last_name }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-white/80 max-w-xs truncate">{{ ticket.subject }}</td>
+                    <td class="px-4 py-3">
+                        {% if ticket.status == 'open' %}
+                        <span class="px-2 py-0.5 rounded-full text-xs bg-orange-500/10 border border-orange-500/20 text-orange-400">Ouvert</span>
+                        {% elif ticket.status == 'in_progress' %}
+                        <span class="px-2 py-0.5 rounded-full text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400">En cours</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 rounded-full text-xs bg-white/5 border border-white/10 text-white/40">Fermé</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-white/50 text-center">{{ ticket.message_count }}</td>
+                    <td class="px-4 py-3 text-white/40 text-xs">{{ ticket.updated_at|date:"d/m/y H:i" }}</td>
+                    <td class="px-4 py-3 text-right">
+                        <a href="{% url 'custom_admin:support_ticket_detail' ticket_id=ticket.id %}"
+                           class="px-3 py-1 text-xs font-medium bg-primary-500/10 border border-primary-500/20 text-primary-400 rounded hover:bg-primary-500/20 transition-colors">
+                            Voir / Répondre
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-4 py-10 text-center text-white/30 text-sm">Aucun ticket.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if page_obj.has_other_pages %}
+        <div class="px-4 py-3 border-t border-white/5 flex items-center justify-between text-xs text-white/40">
+            <span>Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&priority={{ priority_filter }}"
+                   class="px-3 py-1 bg-white/5 border border-white/10 rounded hover:bg-white/10">Précédent</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&priority={{ priority_filter }}"
+                   class="px-3 py-1 bg-white/5 border border-white/10 rounded hover:bg-white/10">Suivant</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

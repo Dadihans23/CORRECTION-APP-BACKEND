@@ -149,3 +149,59 @@ class SiteSettings(models.Model):
 
     def __str__(self):
         return "Paramètres du site"
+
+
+# ==================== SUPPORT ====================
+
+class SupportTicket(models.Model):
+    STATUS_CHOICES = [
+        ('open', 'Ouvert'),
+        ('in_progress', 'En cours'),
+        ('closed', 'Fermé'),
+    ]
+
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name='support_tickets'
+    )
+    subject = models.CharField(max_length=200)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    is_priority = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_priority', '-updated_at']
+        verbose_name = "Ticket support"
+        verbose_name_plural = "Tickets support"
+
+    def __str__(self):
+        flag = '⭐ ' if self.is_priority else ''
+        return f"{flag}#{self.id} — {self.user.phone_number} — {self.subject[:40]}"
+
+    @property
+    def last_message(self):
+        return self.messages.last()
+
+    @property
+    def message_count(self):
+        return self.messages.count()
+
+
+class SupportMessage(models.Model):
+    SENDER_TYPES = [
+        ('user', 'Utilisateur'),
+        ('admin', 'Support'),
+    ]
+
+    ticket = models.ForeignKey(
+        SupportTicket, on_delete=models.CASCADE, related_name='messages'
+    )
+    sender_type = models.CharField(max_length=10, choices=SENDER_TYPES)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"[{self.sender_type}] Ticket #{self.ticket_id}: {self.content[:50]}"

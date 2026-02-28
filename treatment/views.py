@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
-from .models import CorrectionHistory  , ChatMessage  , ChatSession , ImageCorrection , SiteSettings # Import du modèle
+from .models import CorrectionHistory, ChatMessage, ChatSession, ImageCorrection, SiteSettings, SupportTicket, SupportMessage
 from .serializers import CorrectionHistorySerializer , ChatMessageSerializer , ChatSessionDetailSerializer , ImageCorrectionSerializer , SiteSettingsSerializer
 from subscriptions.models import   UsageLog , Subscription   # Import du modèle
 
@@ -649,7 +649,21 @@ JSON :
 class HistoryView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        corrections = CorrectionHistory.objects.filter(user=request.user).order_by('-created_at')
+        corrections = CorrectionHistory.objects.filter(user=request.user)
+        # Applique la restriction history_days du pack actif
+        subscription = (
+            request.user.subscriptions
+            .filter(is_active=True)
+            .select_related('pack')
+            .order_by('-created_at')
+            .first()
+        )
+        if subscription:
+            history_days = subscription.pack.get_feature('history_days')
+            if history_days and int(history_days) > 0:
+                cutoff = timezone.now() - timezone.timedelta(days=int(history_days))
+                corrections = corrections.filter(created_at__gte=cutoff)
+        corrections = corrections.order_by('-created_at')
         serializer = CorrectionHistorySerializer(corrections, many=True)
         return Response(serializer.data)
 
@@ -1146,9 +1160,98 @@ def site_settings_view(request):
     """
     settings = SiteSettings.get_instance()
     serializer = SiteSettingsSerializer(settings)
-    return Response(serializer.data) 
- 
- 
+    return Response(serializer.data)
+
+
+# ============================================================
+# SUPPORT TICKETS
+# ============================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_support_tickets(request):
+    """GET : Liste des tickets de l'utilisateur connecté."""
+    tickets = SupportTicket.objects.filter(user=request.user).prefetch_related('messages')
+    data = []
+    for t in tickets:
+        last_msg = t.messages.last()
+        data.append({
+            'id': t.id,
+            'subject': t.subject,
+            'status': t.status,
+            'is_priority': t.is_priority,
+            'created_at': t.created_at.isoformat(),
+            'updated_at': t.updated_at.isoformat(),
+            'message_count': t.messages.count(),
+            'last_message': last_msg.content[:120] if last_msg else '',
+            'last_sender': last_msg.sender_type if last_msg else '',
+        })
+    return Response({'success': True, 'tickets': data})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_support_ticket(request):
+    """POST : Créer un ticket support."""
+    subject = request.data.get('subject', '').strip()
+    message = request.data.get('message', '').strip()
+    if not subject or not message:
+        return Response({'success': False, 'message': 'Sujet et message requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Priority depuis le pack actif
+    subscription = (
+        request.user.subscriptions
+        .filter(is_active=True)
+        .select_related('pack')
+        .order_by('-created_at')
+        .first()
+    )
+    is_priority = subscription.pack.get_feature('priority_support', default=False) if subscription else False
+
+    ticket = SupportTicket.objects.create(
+        user=request.user, subject=subject, is_priority=bool(is_priority)
+    )
+    SupportMessage.objects.create(ticket=ticket, sender_type='user', content=message)
+    return Response({'success': True, 'ticket_id': ticket.id}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_support_ticket(request, ticket_id):
+    """GET : Détail d'un ticket avec tous ses messages."""
+    ticket = get_object_or_404(SupportTicket, id=ticket_id, user=request.user)
+    msgs = [
+        {'id': m.id, 'sender_type': m.sender_type, 'content': m.content, 'created_at': m.created_at.isoformat()}
+        for m in ticket.messages.all()
+    ]
+    return Response({
+        'success': True,
+        'ticket': {
+            'id': ticket.id, 'subject': ticket.subject, 'status': ticket.status,
+            'is_priority': ticket.is_priority,
+            'created_at': ticket.created_at.isoformat(),
+            'updated_at': ticket.updated_at.isoformat(),
+            'messages': msgs,
+        }
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reply_support_ticket(request, ticket_id):
+    """POST : Répondre à un ticket (côté utilisateur)."""
+    ticket = get_object_or_404(SupportTicket, id=ticket_id, user=request.user)
+    if ticket.status == 'closed':
+        return Response({'success': False, 'message': 'Ce ticket est fermé.'}, status=status.HTTP_400_BAD_REQUEST)
+    content = request.data.get('message', '').strip()
+    if not content:
+        return Response({'success': False, 'message': 'Message vide.'}, status=status.HTTP_400_BAD_REQUEST)
+    SupportMessage.objects.create(ticket=ticket, sender_type='user', content=content)
+    ticket.status = 'open'
+    ticket.save(update_fields=['status', 'updated_at'])
+    return Response({'success': True})
+
+
 
 
 

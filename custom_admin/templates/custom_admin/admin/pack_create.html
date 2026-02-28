@@ -66,12 +66,56 @@
 
             <!-- Features -->
             <div>
-                <label for="features" class="block text-sm font-medium text-white/70 mb-1">Fonctionnalites</label>
-                <textarea name="features" id="features" rows="4"
-                          class="dark-input block w-full rounded-lg text-sm px-3 py-2"
-                          placeholder='["Correction illimitee", "Support prioritaire"] ou une fonctionnalite par ligne'></textarea>
-                <p class="text-xs text-white/40 mt-1">Format JSON (tableau) ou une fonctionnalite par ligne.</p>
+                <label class="block text-sm font-medium text-white/70 mb-3">Fonctionnalites</label>
+
+                <!-- Liste dynamique des fonctionnalités -->
+                <div id="features-list" class="space-y-2 mb-3"></div>
+
+                <!-- Bouton ajouter -->
+                <button type="button" onclick="addFeature()"
+                        class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary-400 border border-dashed border-primary-500/40 rounded-lg hover:bg-primary-500/10 hover:border-primary-500/60 transition-all w-full justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Ajouter une fonctionnalite
+                </button>
+
+                <!-- Champ caché envoyé au serveur -->
+                <textarea name="features" id="features-hidden" class="hidden"></textarea>
             </div>
+
+            <!-- Restrictions fonctionnelles -->
+            {% if all_features %}
+            <div>
+                <label class="block text-sm font-medium text-white/70 mb-1">Restrictions & accès</label>
+                <p class="text-xs text-white/30 mb-3">Contrôlent le comportement réel dans l'application.</p>
+                <div class="space-y-3">
+                    {% for feature in all_features %}
+                    <div class="flex items-center justify-between bg-white/[0.03] border border-white/[0.07] rounded-lg px-4 py-3">
+                        <div>
+                            <p class="text-sm font-medium text-white/80">{{ feature.label }}</p>
+                            {% if feature.description %}
+                            <p class="text-xs text-white/40 mt-0.5">{{ feature.description }}</p>
+                            {% endif %}
+                        </div>
+                        {% if feature.feature_type == 'boolean' %}
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="feat_{{ feature.key }}" value="true" class="sr-only peer">
+                            <div class="w-11 h-6 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white/40 peer-checked:after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500 border border-white/10"></div>
+                        </label>
+                        {% else %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-white/30">jours</span>
+                            <input type="number" name="feat_{{ feature.key }}" min="0"
+                                   placeholder="{{ feature.default_value }}"
+                                   class="dark-input rounded-lg text-sm px-3 py-1.5 w-24 text-right">
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Checkboxes -->
             <div class="flex items-center gap-6">
@@ -99,4 +143,41 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addFeature(value = '') {
+    const list = document.getElementById('features-list');
+    const item = document.createElement('div');
+    item.className = 'flex items-center gap-2 feature-item';
+    item.innerHTML = `
+        <div class="flex items-center gap-2 flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+            <svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <input type="text"
+                   class="bg-transparent flex-1 text-sm text-white placeholder-white/30 outline-none"
+                   placeholder="Ex: Correction illimitee"
+                   value="${value.replace(/"/g, '&quot;')}">
+        </div>
+        <button type="button" onclick="this.parentElement.remove()"
+                class="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    `;
+    list.appendChild(item);
+    item.querySelector('input').focus();
+}
+
+document.querySelector('form').addEventListener('submit', function () {
+    const inputs = document.querySelectorAll('#features-list input');
+    const features = Array.from(inputs)
+        .map(i => i.value.trim())
+        .filter(v => v.length > 0);
+    document.getElementById('features-hidden').value = JSON.stringify(features);
+});
+</script>
 {% endblock %}
