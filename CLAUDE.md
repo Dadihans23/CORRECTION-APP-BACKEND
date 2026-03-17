@@ -34,6 +34,7 @@ gunicorn backend_project.wsgi:application --log-file -
 - **authentification** - User registration, JWT auth, OTP phone verification (custom user model with phone as username)
 - **treatment** - Image processing, AI corrections, chat sessions (main business logic)
 - **subscriptions** - Subscription packs, billing, quota management
+- **classes** - Teacher module: classrooms, students, assignments, grades, attendance, stats
 - **custom_admin** - Admin dashboard with stats, reports, user/pack management (separate from Django admin)
 
 ### Key External Integrations
@@ -69,6 +70,19 @@ gunicorn backend_project.wsgi:application --log-file -
   GET  payment/status/<token_pay>/       → Poll statut paiement (interroge GeniusPay si pending)
   POST payment/cancel/<token_pay>/       → Marque Transaction failed (timeout app mobile)
 
+/api/classes/
+  GET/POST   /                              → Liste / créer classe
+  GET/PUT/DELETE /<id>/                     → Détail classe
+  POST       /<id>/students/                → Ajouter élève
+  POST       /<id>/assignments/             → Ajouter devoir
+  POST       /<id>/assignments/<id>/grade/  → Saisir note
+  GET        /<id>/report/                  → Bulletin (élèves x devoirs)
+  POST       /extract-students/             → OCR liste élèves (Gemini)
+  GET/POST   /<id>/attendance/              → Sessions de présence
+  GET/PUT/DELETE /attendance/<id>/          → Détail session
+  GET        /<id>/stats/                   → Stats globales classe
+  GET        /students/<id>/stats/          → Stats individuelles élève
+
 /custom-admin/               → Dashboard for admin users
   GET /                      → Dashboard stats
   GET /users/                → User management
@@ -93,6 +107,16 @@ gunicorn backend_project.wsgi:application --log-file -
 - `ChatSession`/`ChatMessage` - Conversation history with UUID-based sessions
 - `UsageLog` - Tracks quota consumption per action
 - `SiteSettings` - Singleton model for app-wide configuration
+
+**Classes module models:**
+- `Classroom` - Classe scolaire (`name`, `subject`, `school_name`, `school_year`), liée à un enseignant
+- `Student` - Élève lié à une classe
+- `Assignment` - Devoir/interrogation/examen (`coefficient`, `max_score`, `global_bonus`)
+- `Grade` - Note d'un élève à un devoir (`score`, `effective_score = score + bonus`)
+- `AttendanceSession` - Séance d'appel (`date`, `time`, `label`) avec propriétés `present_count`/`absent_count`
+- `AttendanceRecord` - Présence individuelle (`is_present`), `unique_together = (session, student)`
+
+**Average calculation:** scores normalisés /20 avant pondération → `(effective_score / max_score) * 20 * coeff`
 
 **Transaction model** (paiement) :
 - `token_pay` — référence GeniusPay (ex: `MTX-XXXXXXXX`)
@@ -131,6 +155,10 @@ gunicorn backend_project.wsgi:application --log-file -
 - `subscriptions/models.py` - Pack, Subscription, UsageLog, Transaction (+ champs paiement)
 - `subscriptions/views.py` - SubscribeToPackView, geniuspay_webhook, check_payment_status, cancel_payment
 - `subscriptions/urls.py` - Routes incluant les 3 endpoints paiement GeniusPay
+- `classes/models.py` - Classroom, Student, Assignment, Grade, AttendanceSession, AttendanceRecord
+- `classes/views.py` - CRUD classes + OCR (_detect_mime_type) + attendance + stats
+- `classes/urls.py` - Toutes les routes du module classes
+- `classes/serializers.py` - ClassroomListSerializer, ClassroomDetailSerializer
 - `FLUTTER_GENIUSPAY_INTEGRATION.md` - Documentation intégration Flutter (v1.1)
 
 ## Flutter App (projet lié)
@@ -141,5 +169,15 @@ Fichiers paiement :
 - `lib/screens/pack_detail_screen.dart` - Sélection pack + bottom sheet numéro téléphone
 - `lib/screens/payment_webview_screen.dart` - WebView GeniusPay (interception deep links wave/orange/mtn/moov)
 - `lib/screens/payment_waiting_screen.dart` - Écran attente 60s avec polling + états loading/success/failed
-- `lib/services/api_service.dart` - `subscribeToPack`, `getPaymentStatus`, `cancelPayment`
-- `android/app/src/main/AndroidManifest.xml` - `<queries>` pour deep links mobile money
+- `lib/services/api_service.dart` - `subscribeToPack`, `getPaymentStatus`, `cancelPayment` + méthodes classes
+- `android/app/src/main/AndroidManifest.xml` - `<queries>` deep links + activité UCropActivity
+
+Fichiers module enseignant :
+- `lib/screens/classroom_detail_screen.dart` - 4 onglets (Élèves/Devoirs/Notes/Présence), stats, tap élève
+- `lib/screens/attendance_screen.dart` - AttendanceListScreen + AttendanceTakingScreen
+- `lib/screens/class_stats_screen.dart` - Stats globales classe + export PDF
+- `lib/screens/student_detail_screen.dart` - Fiche individuelle élève (moyenne, rang, présences, notes)
+- `lib/screens/create_classroom_screen.dart` - Création classe + recadrage image (image_cropper) avant OCR
+- `lib/models/classroom.dart` - Tous les modèles Flutter du module classes
+- `lib/services/pdf_report_service.dart` - Génération bulletin PDF + partage WhatsApp
+  - Police Helvetica (Latin-1) : tous chars hors Latin-1 remplacés (>=, -, |, ., sans emojis)

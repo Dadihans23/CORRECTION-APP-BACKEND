@@ -74,6 +74,7 @@ class OTPVerificationView(APIView):
                     first_name=pending_user.first_name,
                     last_name=pending_user.last_name,
                     password=pending_user.password,
+                    role=pending_user.role,
                     is_active=True,
                     is_verified=True
                 )

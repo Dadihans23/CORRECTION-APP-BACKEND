@@ -13,16 +13,17 @@ from django.contrib.auth.hashers import make_password
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'first_name', 'last_name', 'email', 'phone_number', 'is_verified', 'country', 'school_level', 'institution', 'age']
+        fields = ['id', 'first_name', 'last_name', 'email', 'phone_number', 'is_verified', 'role', 'country', 'school_level', 'institution', 'age']
         extra_kwargs = {
             'email': {'required': False},
             'phone_number': {'required': False},
             'is_verified': {'read_only': True},
+            'role': {'required': False},
             'country': {'required': False},
             'school_level': {'required': False},
             'institution': {'required': False},
             'age': {'required': False}
-        }        
+        }
         
 
 class SignupRequestSerializer(serializers.ModelSerializer):
@@ -30,7 +31,8 @@ class SignupRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PendingUser
-        fields = ['phone_number', 'email', 'first_name', 'last_name', 'password']
+        fields = ['phone_number', 'email', 'first_name', 'last_name', 'password', 'role']
+        extra_kwargs = {'role': {'required': False}}
 
     def create(self, validated_data):
         return PendingUser.objects.create(**validated_data)

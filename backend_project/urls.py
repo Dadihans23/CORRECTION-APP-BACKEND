@@ -44,6 +44,7 @@ urlpatterns = [
     path('api/treatment/', include('treatment.urls')),
     path('api/subscription/', include('subscriptions.urls')),
     path('custom-admin/', include('custom_admin.urls')),
+    path('api/classes/', include('classes.urls')),
 ]
 
 

@@ -22,6 +22,8 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(phone_number, first_name, last_name, password, **extra_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    ROLE_CHOICES = [('student', 'Élève'), ('teacher', 'Enseignant')]
+
     phone_number = models.CharField(
         max_length=15,
         unique=True,
@@ -35,6 +37,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     country = models.CharField(max_length=100, blank=True, null=True)
     school_level = models.CharField(max_length=100, blank=True, null=True)
     institution = models.CharField(max_length=200, blank=True, null=True)
@@ -55,11 +58,14 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     
 
 class PendingUser(models.Model):
+    ROLE_CHOICES = [('student', 'Élève'), ('teacher', 'Enseignant')]
+
     phone_number = models.CharField(max_length=15, unique=True)
     email = models.EmailField(blank=True, null=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     password = models.CharField(max_length=128)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
 

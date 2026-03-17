@@ -35,7 +35,7 @@ PAYMENT_MOCK_MODE = False
 SECRET_KEY = 'django-insecure-)*_3xsh-gg-kg@eca5y(tbiib&bd6qi3sux=s&58$^s-9!9bv_'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 # ✅ CORS : Autoriser origines spécifiques
 ALLOWED_HOSTS = [
@@ -48,7 +48,9 @@ ALLOWED_HOSTS = [
     '172.20.10.2',
     '10.245.8.222',
     '.onrender.com',
-    '10.244.164.222'    
+    '10.244.164.222',
+    '192.168.1.49',
+    '192.168.1.30' 
 ]
 
 
@@ -118,7 +120,8 @@ INSTALLED_APPS = [
     'treatment',
     'subscriptions',
     'corsheaders',
-    'custom_admin',  
+    'custom_admin',
+    'classes',
 ]
 
 MIDDLEWARE = [
