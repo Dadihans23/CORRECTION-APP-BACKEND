@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="fr" class="h-full">
+<html lang="fr" class="h-full dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -84,6 +85,91 @@
 
         /* Progress bars */
         .dark-progress { background: rgba(255,255,255,0.08); border-radius: 9999px; }
+
+        /* ─── Theme toggle button ─── */
+        .theme-toggle { transition: background .2s, color .2s; }
+
+        /* ─── LIGHT MODE overrides ─── */
+        html.light body            { background-color: #F0F2F5 !important; color: #1A1A2E !important; }
+
+        /* Sidebar */
+        html.light aside > div    { background: #FFFFFF !important; border-color: rgba(0,0,0,.07) !important; }
+        html.light .sidebar-link  { color: rgba(0,0,0,.55) !important; }
+        html.light .sidebar-link.active { background: rgba(30,136,229,.10) !important; color: #1565C0 !important; border-color: #1E88E5 !important; }
+        html.light .sidebar-link:hover:not(.active) { background: rgba(0,0,0,.04) !important; }
+        html.light aside p.text-white\/30 { color: rgba(0,0,0,.35) !important; }
+        html.light aside .border-white\/5 { border-color: rgba(0,0,0,.07) !important; }
+        html.light aside .text-white\/90 { color: #1A1A2E !important; }
+        html.light aside .text-white\/40 { color: rgba(0,0,0,.45) !important; }
+        html.light aside .text-white\/30 { color: rgba(0,0,0,.35) !important; }
+        html.light aside .bg-primary-500\/20 { background: rgba(30,136,229,.12) !important; }
+
+        /* Header / topbar */
+        html.light header { background: rgba(255,255,255,.90) !important; border-color: rgba(0,0,0,.08) !important; }
+        html.light header h1 { color: #1A1A2E !important; }
+        html.light header .text-white\/40 { color: rgba(0,0,0,.40) !important; }
+        html.light header .text-white\/60 { color: rgba(0,0,0,.55) !important; }
+        html.light header button:not(.theme-toggle):hover { background: rgba(0,0,0,.05) !important; }
+
+        /* Main content area */
+        html.light main { background: #F0F2F5; }
+
+        /* Cards / glass */
+        html.light .glass,
+        html.light .glass-card     { background: #FFFFFF !important; border-color: rgba(0,0,0,.08) !important; }
+        html.light .glass-card:hover { background: #FAFAFA !important; border-color: rgba(0,0,0,.12) !important; }
+        html.light .stat-card      { background: #FFFFFF !important; }
+        html.light .bg-dark-800    { background: #FFFFFF !important; border-color: rgba(0,0,0,.08) !important; }
+        html.light .bg-dark-900    { background: #F7F8FA !important; }
+        html.light .bg-dark-900\/80 { background: rgba(255,255,255,.90) !important; }
+        html.light .bg-dark-950    { background: #F0F2F5 !important; }
+
+        /* Text */
+        html.light .text-white     { color: #1A1A2E !important; }
+        html.light .text-white\/90 { color: rgba(26,26,46,.90) !important; }
+        html.light .text-white\/70 { color: rgba(26,26,46,.70) !important; }
+        html.light .text-white\/60 { color: rgba(26,26,46,.60) !important; }
+        html.light .text-white\/50 { color: rgba(26,26,46,.50) !important; }
+        html.light .text-white\/40 { color: rgba(26,26,46,.40) !important; }
+        html.light .text-white\/30 { color: rgba(26,26,46,.30) !important; }
+        html.light .text-white\/25 { color: rgba(26,26,46,.25) !important; }
+        html.light .text-white\/20 { color: rgba(26,26,46,.20) !important; }
+
+        /* Borders */
+        html.light .border-white\/5  { border-color: rgba(0,0,0,.06) !important; }
+        html.light .border-white\/10 { border-color: rgba(0,0,0,.09) !important; }
+        html.light .border-white\/\[0\.06\] { border-color: rgba(0,0,0,.06) !important; }
+
+        /* Inputs */
+        html.light .dark-input {
+            background: #F7F8FA !important;
+            border-color: rgba(0,0,0,.12) !important;
+            color: #1A1A2E !important;
+        }
+        html.light .dark-input::placeholder { color: rgba(0,0,0,.35) !important; }
+        html.light .dark-input:focus { background: #FFFFFF !important; }
+
+        /* Tables */
+        html.light .dark-table thead { background: rgba(0,0,0,.03) !important; }
+        html.light .dark-table tbody tr { border-color: rgba(0,0,0,.05) !important; }
+        html.light .dark-table tbody tr:hover { background: rgba(0,0,0,.02) !important; }
+
+        /* Scrollbar */
+        html.light ::-webkit-scrollbar-thumb { background: rgba(30,136,229,.25); }
+
+        /* Progress */
+        html.light .dark-progress { background: rgba(0,0,0,.08) !important; }
+
+        /* Messages */
+        html.light .msg-success { background: rgba(102,187,106,.10) !important; }
+        html.light .msg-error   { background: rgba(239,83,80,.10)  !important; }
+        html.light .msg-info    { background: rgba(79,195,247,.10)  !important; }
+
+        /* Misc bg overrides */
+        html.light [class*="bg-white\/0"] { background: rgba(0,0,0,.03) !important; }
+        html.light .hover\:bg-white\/5:hover { background: rgba(0,0,0,.05) !important; }
+        html.light .bg-white\/\[0\.03\]   { background: rgba(0,0,0,.02) !important; }
+        html.light .bg-white\/\[0\.05\]   { background: rgba(0,0,0,.04) !important; }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -214,6 +300,17 @@
                 <div class="flex items-center gap-3">
                     {% block header_actions %}{% endblock %}
                     <span class="text-sm text-white/40">{{ request.user.phone_number }}</span>
+                    <!-- Theme toggle -->
+                    <button id="adminThemeToggle" aria-label="Basculer le theme"
+                            class="theme-toggle w-9 h-9 rounded-xl flex items-center justify-center text-white/50 hover:text-white/80"
+                            style="background:rgba(255,255,255,.06)">
+                        <svg id="adminIconSun" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <svg id="adminIconMoon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
                 </div>
             </header>
 
@@ -235,12 +332,119 @@
         </div>
     </div>
 
-    <!-- Chart.js dark theme defaults -->
+    <!-- ─── Admin theme + Chart.js sync ─── -->
     <script>
-        Chart.defaults.color = 'rgba(255,255,255,0.5)';
-        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
-        Chart.defaults.plugins.legend.labels.color = 'rgba(255,255,255,0.6)';
+    (function () {
+        const html     = document.documentElement;
+        const btn      = document.getElementById('adminThemeToggle');
+        const iconSun  = document.getElementById('adminIconSun');
+        const iconMoon = document.getElementById('adminIconMoon');
+
+        /* Couleurs selon le thème */
+        function chartColors(dark) {
+            return {
+                tick:           dark ? 'rgba(255,255,255,0.45)' : 'rgba(26,26,46,0.50)',
+                grid:           dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)',
+                legend:         dark ? 'rgba(255,255,255,0.55)' : 'rgba(26,26,46,0.65)',
+                tooltip:        dark ? 'rgba(15,15,23,0.95)'    : 'rgba(255,255,255,0.97)',
+                tooltipText:    dark ? '#fff'                   : '#1A1A2E',
+                doughnutBorder: dark ? 'rgba(255,255,255,0.05)' : 'rgba(240,242,245,0.9)',
+            };
+        }
+
+        /* Exposer les couleurs globalement AVANT que les charts soient crees */
+        const _savedEarly = localStorage.getItem('cm-admin-dark');
+        const _isDarkEarly = _savedEarly === null ? true : _savedEarly !== 'false';
+        window.CM = chartColors(_isDarkEarly);
+
+        /* Met à jour Chart.defaults ET tous les graphiques déjà créés */
+        function syncCharts(dark) {
+            if (typeof Chart === 'undefined') return;
+            const c = chartColors(dark);
+
+            /* Defaults pour les futurs graphiques */
+            Chart.defaults.color = c.tick;
+            Chart.defaults.borderColor = c.grid;
+            Chart.defaults.plugins.legend.labels.color = c.legend;
+            Chart.defaults.plugins.tooltip.backgroundColor = c.tooltip;
+            Chart.defaults.plugins.tooltip.titleColor = c.tooltipText;
+            Chart.defaults.plugins.tooltip.bodyColor = c.tooltipText;
+
+            /* Patch tous les graphiques existants */
+            Object.values(Chart.instances).forEach(function (chart) {
+                /* Légende */
+                if (chart.options.plugins && chart.options.plugins.legend) {
+                    if (!chart.options.plugins.legend.labels) chart.options.plugins.legend.labels = {};
+                    chart.options.plugins.legend.labels.color = c.legend;
+                }
+                /* Tooltip */
+                if (chart.options.plugins && chart.options.plugins.tooltip) {
+                    chart.options.plugins.tooltip.backgroundColor = c.tooltip;
+                    chart.options.plugins.tooltip.titleColor = c.tooltipText;
+                    chart.options.plugins.tooltip.bodyColor = c.tooltipText;
+                }
+                /* Axes x et y */
+                ['x', 'y'].forEach(function (axis) {
+                    var scale = chart.options.scales && chart.options.scales[axis];
+                    if (!scale) return;
+                    if (!scale.ticks) scale.ticks = {};
+                    scale.ticks.color = c.tick;
+                    if (scale.grid && scale.grid.display !== false) {
+                        scale.grid.color = c.grid;
+                    }
+                });
+                /* Datasets : border doughnut/pie */
+                if (chart.config.type === 'doughnut' || chart.config.type === 'pie') {
+                    chart.data.datasets.forEach(function (ds) {
+                        ds.borderColor = c.doughnutBorder;
+                    });
+                }
+                chart.update('none'); /* 'none' = pas d'animation pour transition instantanée */
+            });
+        }
+
+        function applyAdminTheme(dark) {
+            window.CM = chartColors(dark); /* Mettre à jour les couleurs globales */
+            if (dark) {
+                html.classList.add('dark');
+                html.classList.remove('light');
+                iconSun.classList.remove('hidden');
+                iconMoon.classList.add('hidden');
+                if (btn) { btn.style.background = 'rgba(255,255,255,.06)'; btn.style.color = ''; }
+            } else {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                iconSun.classList.add('hidden');
+                iconMoon.classList.remove('hidden');
+                if (btn) { btn.style.background = 'rgba(0,0,0,.06)'; btn.style.color = 'rgba(26,26,46,.7)'; }
+            }
+            syncCharts(dark);
+        }
+
+        /* Init depuis localStorage — dark par défaut */
+        const saved  = localStorage.getItem('cm-admin-dark');
+        const isDark = saved === null ? true : saved !== 'false';
+
+        /* Appliquer le thème visuel immédiatement (avant le render des charts) */
+        applyAdminTheme(isDark);
+
+        /* Après que les charts de la page soient créés, les synchroniser */
+        window.addEventListener('load', function () { syncCharts(isDark); });
+
+        /* Toggle au clic */
+        if (btn) {
+            btn.addEventListener('click', function () {
+                const nowDark = !html.classList.contains('dark');
+                applyAdminTheme(nowDark);
+                localStorage.setItem('cm-admin-dark', String(nowDark));
+            });
+        }
+
+        /* Exposé globalement pour que les templates puissent l'appeler après init de leurs charts */
+        window.syncAdminCharts = function () { syncCharts(html.classList.contains('dark')); };
+    })();
     </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -133,6 +133,7 @@ const a = {
     usage: { labels: {{ analytics.usage.labels|safe }}, series: {{ analytics.usage.series|safe }} },
     levels: { labels: {{ analytics.levels.labels|safe }}, series: {{ analytics.levels.series|safe }} },
 };
+const _cm = window.CM || {};
 
 // Activity Chart (Line)
 new Chart(document.getElementById('activityChart').getContext('2d'), {
@@ -168,18 +169,18 @@ new Chart(document.getElementById('activityChart').getContext('2d'), {
         plugins: {
             legend: {
                 position: 'top',
-                labels: { font: { size: 11 }, color: 'rgba(255,255,255,0.4)' }
+                labels: { font: { size: 11 }, color: _cm.legend }
             }
         },
         scales: {
             y: {
                 beginAtZero: true,
-                grid: { color: 'rgba(255,255,255,0.06)' },
-                ticks: { font: { size: 10 }, color: 'rgba(255,255,255,0.4)' }
+                grid: { color: _cm.grid },
+                ticks: { font: { size: 10 }, color: _cm.tick }
             },
             x: {
                 grid: { display: false },
-                ticks: { font: { size: 10 }, maxRotation: 45, color: 'rgba(255,255,255,0.4)' }
+                ticks: { font: { size: 10 }, maxRotation: 45, color: _cm.tick }
             }
         }
     }
@@ -194,7 +195,7 @@ new Chart(document.getElementById('usageChart').getContext('2d'), {
             data: a.usage.series,
             backgroundColor: ['#1E88E5', '#AB47BC'],
             borderWidth: 2,
-            borderColor: 'rgba(255,255,255,0.05)',
+            borderColor: _cm.doughnutBorder,
         }]
     },
     options: {
@@ -204,7 +205,7 @@ new Chart(document.getElementById('usageChart').getContext('2d'), {
         plugins: {
             legend: {
                 position: 'bottom',
-                labels: { font: { size: 11 }, padding: 12, color: 'rgba(255,255,255,0.4)' }
+                labels: { font: { size: 11 }, padding: 12, color: _cm.legend }
             }
         }
     }
@@ -231,12 +232,12 @@ new Chart(document.getElementById('revenueChart').getContext('2d'), {
         scales: {
             y: {
                 beginAtZero: true,
-                grid: { color: 'rgba(255,255,255,0.06)' },
-                ticks: { font: { size: 10 }, color: 'rgba(255,255,255,0.4)' }
+                grid: { color: _cm.grid },
+                ticks: { font: { size: 10 }, color: _cm.tick }
             },
             x: {
                 grid: { display: false },
-                ticks: { font: { size: 10 }, maxRotation: 45, color: 'rgba(255,255,255,0.4)' }
+                ticks: { font: { size: 10 }, maxRotation: 45, color: _cm.tick }
             }
         }
     }
@@ -261,15 +262,18 @@ new Chart(document.getElementById('levelsChart').getContext('2d'), {
         scales: {
             x: {
                 beginAtZero: true,
-                grid: { color: 'rgba(255,255,255,0.06)' },
-                ticks: { font: { size: 10 }, color: 'rgba(255,255,255,0.4)' }
+                grid: { color: _cm.grid },
+                ticks: { font: { size: 10 }, color: _cm.tick }
             },
             y: {
                 grid: { display: false },
-                ticks: { font: { size: 11 }, color: 'rgba(255,255,255,0.4)' }
+                ticks: { font: { size: 11 }, color: _cm.tick }
             }
         }
     }
 });
+
+// Sync couleurs avec le thème actuel (dark/light)
+if (window.syncAdminCharts) window.syncAdminCharts();
 </script>
 {% endblock %}

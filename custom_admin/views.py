@@ -95,6 +95,7 @@ from treatment.models import (
     SupportMessage,
 )
 from subscriptions.models import Pack, Subscription, UsageLog, Transaction, Feature, PackFeature
+from classes.models import Classroom, Student, Assignment
 
 # =====================================================
 # ⚙️ OTHER SETTINGS
@@ -189,8 +190,15 @@ def admin_dashboard(request):
     transaction_filter = Q(created_at__date__gte=start_date) & Q(created_at__date__lte=end_date)
 
     # === STATS GÉNÉRALES (toujours total) ===
-    total_users = CustomUser.objects.count()
-    active_users = CustomUser.objects.filter(is_active=True).count()
+    total_users    = CustomUser.objects.count()
+    total_students = CustomUser.objects.filter(role='student').count()
+    total_teachers = CustomUser.objects.filter(role='teacher').count()
+    active_users   = CustomUser.objects.filter(is_active=True).count()
+
+    this_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    new_students_month = CustomUser.objects.filter(role='student', date_joined__gte=this_month_start).count()
+    new_teachers_month = CustomUser.objects.filter(role='teacher', date_joined__gte=this_month_start).count()
+
     total_packs = Pack.objects.filter(is_active=True).count()
     active_subscriptions = Subscription.objects.filter(is_active=True).count()
 
@@ -239,6 +247,10 @@ def admin_dashboard(request):
     # === CONTEXTE ===
     context = {
         'total_users': total_users,
+        'total_students': total_students,
+        'total_teachers': total_teachers,
+        'new_students_month': new_students_month,
+        'new_teachers_month': new_teachers_month,
         'active_users': active_users,
         'total_packs': total_packs,
         'active_subscriptions': active_subscriptions,
@@ -266,17 +278,26 @@ def admin_dashboard(request):
 
 @staff_required
 def admin_users(request):
-    # RÉCUPÉRATION DES DONNÉES RÉELLES
     users = CustomUser.objects.all().order_by('-date_joined')
-    
-    # PAGINATION (comme le dashboard user)
+
+    # Filtre par rôle
+    role_filter = request.GET.get('role', '')
+    if role_filter in ('student', 'teacher'):
+        users = users.filter(role=role_filter)
+
+    total_students = CustomUser.objects.filter(role='student').count()
+    total_teachers = CustomUser.objects.filter(role='teacher').count()
+
     per_page = int(request.GET.get('per_page', 10))
     paginator = Paginator(users, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
-    
+
     return render(request, 'custom_admin/admin/users.html', {
         'page_obj': page_obj,
+        'role_filter': role_filter,
+        'total_students': total_students,
+        'total_teachers': total_teachers,
     })
 
 
@@ -294,6 +315,9 @@ def admin_user_create(request):
         confirm_password = request.POST.get('confirm_password')
         is_active = 'is_active' in request.POST
         is_staff = 'is_staff' in request.POST
+        role = request.POST.get('role', 'student')
+        if role not in ('student', 'teacher'):
+            role = 'student'
         country = request.POST.get('country', '').strip() or None
         school_level = request.POST.get('school_level', '').strip() or None
         institution = request.POST.get('institution', '').strip() or None
@@ -327,6 +351,7 @@ def admin_user_create(request):
                 password=password,
                 is_active=is_active,
                 is_staff=is_staff,
+                role=role,
                 country=country,
                 school_level=school_level,
                 institution=institution,
@@ -380,41 +405,57 @@ def admin_user_detail(request, user_id):
     total_chat_questions = ChatMessage.objects.filter(session__user=user, role='user').count()
     total_actions = total_image_corrections + total_chat_questions
 
+    # === STATS ENSEIGNANT (si teacher) ===
+    teacher_stats = None
+    if user.role == 'teacher':
+        nb_classrooms = Classroom.objects.filter(teacher=user).count()
+        nb_students   = Student.objects.filter(classroom__teacher=user).count()
+        nb_assignments = Assignment.objects.filter(classroom__teacher=user).count()
+        teacher_stats = {
+            'nb_classrooms':  nb_classrooms,
+            'nb_students':    nb_students,
+            'nb_assignments': nb_assignments,
+        }
+
     # === DERNIÈRES ACTIONS (timeline) ===
     recent_actions = []
 
-    # Transactions
-    for trans in Transaction.objects.filter(user=user).order_by('-created_at')[:3]:
-        recent_actions.append({
-            'type': 'transaction',
-            'icon': 'mdi-currency-usd',
-            'color': 'success',
-            'title': f'Achat {trans.pack.name}',
-            'desc': f'{trans.price_paid} CFA',
-            'date': trans.created_at,
-        })
-
-    # Corrections image
-    for corr in ImageCorrection.objects.filter(user=user).order_by('-created_at')[:3]:
-        recent_actions.append({
-            'type': 'image',
-            'icon': 'mdi-image-edit',
-            'color': 'info',
-            'title': 'Correction photo',
-            'desc': f'{corr.domaine} - {corr.niveau}',
-            'date': corr.created_at,
-        })
-
-    # Chat
-    for msg in ChatMessage.objects.filter(session__user=user, role='user').order_by('-created_at')[:3]:
-        recent_actions.append({
-            'type': 'chat',
-            'icon': 'mdi-chat',
-            'color': 'primary',
-            'title': 'Question chat',
-            'desc': msg.content[:50] + ('...' if len(msg.content) > 50 else ''),
-            'date': msg.created_at,
-        })
+    if user.role == 'teacher':
+        # Activité enseignant : classes créées
+        for classroom in Classroom.objects.filter(teacher=user).order_by('-id')[:5]:
+            recent_actions.append({
+                'type': 'classroom',
+                'icon': '🏫',
+                'title': f'Classe : {classroom.name}',
+                'desc': f'{classroom.subject} — {classroom.school_name or ""}',
+                'date': timezone.now(),  # Classroom n'a pas de created_at, approximation
+            })
+    else:
+        # Activité étudiant : transactions, corrections, chat
+        for trans in Transaction.objects.filter(user=user).order_by('-created_at')[:3]:
+            recent_actions.append({
+                'type': 'transaction',
+                'icon': '💳',
+                'title': f'Achat {trans.pack.name}',
+                'desc': f'{trans.price_paid} CFA',
+                'date': trans.created_at,
+            })
+        for corr in ImageCorrection.objects.filter(user=user).order_by('-created_at')[:3]:
+            recent_actions.append({
+                'type': 'image',
+                'icon': '📷',
+                'title': 'Correction photo',
+                'desc': f'{corr.domaine} - {corr.niveau}',
+                'date': corr.created_at,
+            })
+        for msg in ChatMessage.objects.filter(session__user=user, role='user').order_by('-created_at')[:3]:
+            recent_actions.append({
+                'type': 'chat',
+                'icon': '💬',
+                'title': 'Question chat',
+                'desc': msg.content[:50] + ('...' if len(msg.content) > 50 else ''),
+                'date': msg.created_at,
+            })
 
     # Trier par date
     recent_actions = sorted(recent_actions, key=lambda x: x['date'], reverse=True)[:10]
@@ -429,6 +470,7 @@ def admin_user_detail(request, user_id):
         'total_image_corrections': total_image_corrections,
         'total_chat_questions': total_chat_questions,
         'total_actions': total_actions,
+        'teacher_stats': teacher_stats,
         'recent_actions': recent_actions,
     }
 
@@ -454,6 +496,11 @@ def admin_user_edit(request, user_id):
         # Champs optionnels
         age = request.POST.get('age')
         user.age = int(age) if age and age.isdigit() else None
+
+        # Rôle
+        role = request.POST.get('role', 'student')
+        if role in ('student', 'teacher'):
+            user.role = role
 
         # Permissions
         user.is_active = 'is_active' in request.POST
@@ -554,6 +601,7 @@ def admin_pack_create(request):
                 duration=int(request.POST['duration']),
                 is_best_plan='is_best_plan' in request.POST,
                 is_active='is_active' in request.POST,
+                is_free='is_free' in request.POST,
                 features=features
             )
 
@@ -612,6 +660,7 @@ def admin_pack_edit(request, pack_id):
         pack.duration = int(request.POST['duration'])
         pack.is_best_plan = 'is_best_plan' in request.POST
         pack.is_active = 'is_active' in request.POST
+        pack.is_free = 'is_free' in request.POST
         pack.features = features
         pack.save()
 
@@ -992,10 +1041,12 @@ def admin_user_stats(request):
     this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     # === TOTAL UTILISATEURS ===
-    total_users = CustomUser.objects.count()
+    total_users    = CustomUser.objects.count()
+    total_students = CustomUser.objects.filter(role='student').count()
+    total_teachers = CustomUser.objects.filter(role='teacher').count()
 
-    # === UTILISATEURS ACTIFS (abonnés + activité récente) ===
-    active_subscriptions = Subscription.objects.filter(is_active=True).count()
+    # === UTILISATEURS ACTIFS (abonnés étudiants + activité récente) ===
+    active_subscriptions = Subscription.objects.filter(is_active=True, user__role='student').count()
     recent_activity_users = UsageLog.objects.filter(
         timestamp__gte=now - timedelta(days=30)
     ).values('subscription__user').distinct().count()
@@ -1005,6 +1056,8 @@ def admin_user_stats(request):
     new_this_month = CustomUser.objects.filter(
         date_joined__gte=this_month_start
     ).count()
+    new_students_month = CustomUser.objects.filter(role='student', date_joined__gte=this_month_start).count()
+    new_teachers_month = CustomUser.objects.filter(role='teacher', date_joined__gte=this_month_start).count()
 
     # === RÉPARTITION PAR PACK ===
     all_packs = Pack.objects.filter(is_active=True)
@@ -1013,15 +1066,15 @@ def admin_user_stats(request):
         count = Subscription.objects.filter(pack=pack, is_active=True).count()
         user_distribution[pack.name] = count
 
-    # Utilisateurs sans abonnement actif
-    users_with_sub = Subscription.objects.filter(is_active=True).values_list('user', flat=True).distinct()
-    free_users = CustomUser.objects.exclude(id__in=users_with_sub).count()
+    # Étudiants sans abonnement actif
+    users_with_sub = Subscription.objects.filter(is_active=True, user__role='student').values_list('user', flat=True).distinct()
+    free_users = CustomUser.objects.filter(role='student').exclude(id__in=users_with_sub).count()
     user_distribution['Gratuit'] = free_users
 
-    # Pourcentages
+    # Pourcentages (base = étudiants uniquement pour les stats pack)
     user_distribution_with_percentage = {}
     for pack_name, count in user_distribution.items():
-        percentage = (count * 100 / total_users) if total_users > 0 else 0
+        percentage = (count * 100 / total_students) if total_students > 0 else 0
         user_distribution_with_percentage[pack_name] = {
             'count': count,
             'percentage': round(percentage, 1)
@@ -1087,6 +1140,10 @@ def admin_user_stats(request):
     context = {
         'user_stats': {
             'total_users': total_users,
+            'total_students': total_students,
+            'total_teachers': total_teachers,
+            'new_students_month': new_students_month,
+            'new_teachers_month': new_teachers_month,
             'active_users': active_users,
             'new_this_month': new_this_month,
             'user_growth_data': user_growth_data,
@@ -1121,8 +1178,8 @@ def admin_analytics(request):
     this_month = now.replace(day=1)
     last_month = (this_month - timedelta(days=1)).replace(day=1)
 
-    new_users_this_month = CustomUser.objects.filter(date_joined__gte=this_month).count()
-    new_users_last_month = CustomUser.objects.filter(date_joined__gte=last_month, date_joined__lt=this_month).count()
+    new_users_this_month = CustomUser.objects.filter(role='student', date_joined__gte=this_month).count()
+    new_users_last_month = CustomUser.objects.filter(role='student', date_joined__gte=last_month, date_joined__lt=this_month).count()
     user_growth = round(((new_users_this_month - new_users_last_month) / new_users_last_month * 100), 1) if new_users_last_month else 100
 
     total_revenue = float(Transaction.objects.filter(transaction_type='subscription', payment_status='paid').aggregate(t=Sum('price_paid'))['t'] or 0)
@@ -1510,6 +1567,8 @@ def admin_settings(request):
         settings.support_phone = request.POST.get('support_phone', settings.support_phone)
         settings.support_facebook = request.POST.get('support_facebook', settings.support_facebook)
         settings.support_instagram = request.POST.get('support_instagram', settings.support_instagram)
+        settings.play_store_url = request.POST.get('play_store_url', settings.play_store_url)
+        settings.app_store_url = request.POST.get('app_store_url', settings.app_store_url)
 
         settings.site_name = request.POST.get('site_name', settings.site_name)
         settings.maintenance_mode = request.POST.get('maintenance_mode') == 'on'
@@ -1806,4 +1865,10 @@ def landing_page(request):
     return render(request, 'custom_admin/landing.html', {
         'packs': packs,
         'site': site,
+        'play_store_url': site.play_store_url,
+        'app_store_url': site.app_store_url,
+        'support_email': site.support_email,
+        'support_whatsapp': site.support_whatsapp,
+        'support_facebook': site.support_facebook,
+        'support_instagram': site.support_instagram,
     })

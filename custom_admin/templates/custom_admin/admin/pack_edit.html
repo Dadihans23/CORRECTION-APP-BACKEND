@@ -114,7 +114,7 @@
             {% endif %}
 
             <!-- Checkboxes -->
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-6 flex-wrap">
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="is_best_plan" value="true"
                            {% if pack.is_best_plan %}checked{% endif %}
@@ -126,6 +126,12 @@
                            {% if pack.is_active %}checked{% endif %}
                            class="rounded border-white/20 text-primary-500 focus:ring-primary-500 bg-white/5">
                     <span class="text-sm text-white/70">Actif</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer" title="Si coche, l'utilisateur obtient l'abonnement directement sans passer par le paiement">
+                    <input type="checkbox" name="is_free" value="true"
+                           {% if pack.is_free %}checked{% endif %}
+                           class="rounded border-white/20 text-accent-green focus:ring-accent-green bg-white/5">
+                    <span class="text-sm text-accent-green font-medium">Pack gratuit</span>
                 </label>
             </div>
 

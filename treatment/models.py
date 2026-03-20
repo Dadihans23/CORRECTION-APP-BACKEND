@@ -116,12 +116,16 @@ class SiteSettings(models.Model):
     maintenance_mode = models.BooleanField(default=False)
     allow_registrations = models.BooleanField(default=True)
 
-    # === SUPPORT (CE QUE TU VEUX DANS L'APP MOBILE) ===
+    # === SUPPORT ===
     support_email = models.EmailField(default="support@corrigemoi.ci")
     support_whatsapp = models.CharField(max_length=20, default="+2250707070707")
     support_phone = models.CharField(max_length=20, blank=True, default="")
     support_facebook = models.URLField(blank=True, default="")
     support_instagram = models.URLField(blank=True, default="")
+
+    # === STORE LINKS (landing page) ===
+    play_store_url = models.URLField(blank=True, default="", verbose_name="Lien Play Store")
+    app_store_url = models.URLField(blank=True, default="", verbose_name="Lien App Store")
 
     # === AUTRES (tu gardes tout le reste) ===
     timezone = models.CharField(max_length=50, default="Africa/Abidjan")

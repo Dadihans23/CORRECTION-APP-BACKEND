@@ -29,6 +29,11 @@
             <p class="text-sm text-white/50">{{ user.phone_number }}</p>
         </div>
         <div class="ml-4 flex items-center gap-2">
+            {% if user.role == 'teacher' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-success">Enseignant</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-info">Etudiant</span>
+            {% endif %}
             {% if user.is_active %}
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-success">Actif</span>
             {% else %}
@@ -41,8 +46,56 @@
     </div>
 </div>
 
-<!-- Stat Cards -->
+<!-- Stat Cards — adaptées selon le rôle -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+{% if user.role == 'teacher' %}
+    <!-- Stats enseignant -->
+    <div class="stat-card glass-card rounded-xl p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-accent-green/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-white/50">Classes</p>
+                <p class="text-xl font-bold text-white">{{ teacher_stats.nb_classrooms }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card glass-card rounded-xl p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-primary-400/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-white/50">Eleves</p>
+                <p class="text-xl font-bold text-white">{{ teacher_stats.nb_students }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card glass-card rounded-xl p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-accent-violet/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-accent-violet" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-white/50">Devoirs</p>
+                <p class="text-xl font-bold text-white">{{ teacher_stats.nb_assignments }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card glass-card rounded-xl p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-accent-orange/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-accent-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm text-white/50">Inscription</p>
+                <p class="text-sm font-bold text-white">{{ user.date_joined|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <!-- Stats étudiant -->
     <div class="stat-card glass-card rounded-xl p-5">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-accent-green/15 flex items-center justify-center">
@@ -87,6 +140,7 @@
             </div>
         </div>
     </div>
+{% endif %}
 </div>
 
 <!-- Two Columns -->
@@ -123,6 +177,16 @@
                     <dd class="text-sm font-medium text-white">{{ user.age|default:"-" }}</dd>
                 </div>
                 <div class="flex justify-between">
+                    <dt class="text-sm text-white/50">Role</dt>
+                    <dd>
+                        {% if user.role == 'teacher' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-success">Enseignant</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-info">Etudiant</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="flex justify-between">
                     <dt class="text-sm text-white/50">Date d'inscription</dt>
                     <dd class="text-sm font-medium text-white">{{ user.date_joined|date:"d/m/Y H:i" }}</dd>
                 </div>
@@ -152,7 +216,8 @@
 
     <!-- Right: Subscription + Recent Actions -->
     <div class="space-y-6">
-        <!-- Active Subscription -->
+        <!-- Active Subscription (étudiants uniquement) -->
+        {% if user.role != 'teacher' %}
         <div class="glass-card rounded-xl overflow-hidden">
             <div class="px-6 py-4 border-b border-white/[0.07]">
                 <h3 class="text-base font-semibold text-white">Abonnement actif</h3>
@@ -202,6 +267,7 @@
                 {% endif %}
             </div>
         </div>
+        {% endif %}{# fin if role != teacher #}
 
         <!-- Recent Actions -->
         <div class="glass-card rounded-xl overflow-hidden">
@@ -235,7 +301,8 @@
     </div>
 </div>
 
-<!-- Subscription History -->
+<!-- Subscription History (étudiants uniquement) -->
+{% if user.role != 'teacher' %}
 <div class="glass-card rounded-xl overflow-hidden">
     <div class="px-6 py-4 border-b border-white/[0.07]">
         <h3 class="text-base font-semibold text-white">Historique des abonnements</h3>
@@ -279,6 +346,7 @@
         </table>
     </div>
 </div>
+{% endif %}{# fin if role != teacher #}
 {% endblock %}
 
 {% block extra_js %}

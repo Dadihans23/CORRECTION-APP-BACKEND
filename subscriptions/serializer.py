@@ -10,7 +10,7 @@ class PackSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'price', 'description', 'features',
             'image_corrections_limit', 'chat_questions_limit',
-            'duration', 'is_best_plan', 'subscribers_count',
+            'duration', 'is_best_plan', 'is_free', 'subscribers_count',
             'pack_features',
         ]
         read_only_fields = ['subscribers_count', 'pack_features']

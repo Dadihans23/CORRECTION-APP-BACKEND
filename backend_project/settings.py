@@ -50,7 +50,8 @@ ALLOWED_HOSTS = [
     '.onrender.com',
     '10.244.164.222',
     '192.168.1.49',
-    '192.168.1.30' 
+    '192.168.1.30',
+    '10.244.164.222' 
 ]
 
 
@@ -192,6 +193,7 @@ USE_TZ = True
 # Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

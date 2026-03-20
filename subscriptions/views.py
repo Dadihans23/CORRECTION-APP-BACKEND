@@ -73,19 +73,26 @@ class SubscribeToPackView(generics.CreateAPIView):
         pack_id = request.data.get('pack_id')
         phone_number = request.data.get('phone_number')
 
-        if not pack_id or not phone_number:
+        if not pack_id:
+            return Response({
+                'success': False,
+                'message': 'pack_id est requis.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        new_pack = get_object_or_404(Pack, id=pack_id, is_active=True)
+
+        # Pour les packs payants, phone_number est obligatoire
+        if not new_pack.is_free and not phone_number:
             return Response({
                 'success': False,
                 'message': 'pack_id et phone_number sont requis.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if not settings.GENIUSPAY_API_KEY or not settings.GENIUSPAY_API_SECRET:
+        if not new_pack.is_free and (not settings.GENIUSPAY_API_KEY or not settings.GENIUSPAY_API_SECRET):
             return Response({
                 'success': False,
                 'message': 'Service de paiement non configuré.'
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
-        new_pack = get_object_or_404(Pack, id=pack_id, is_active=True)
 
         # Récupérer l'abonnement actif
         current_sub = Subscription.objects.filter(user=user, is_active=True).first()
@@ -103,6 +110,29 @@ class SubscribeToPackView(generics.CreateAPIView):
         if current_sub:
             previous_pack = current_sub.pack
             transaction_type = 'renewal' if current_sub.is_expired() else 'upgrade'
+
+        # ── PACK GRATUIT : activation directe sans paiement ──
+        if new_pack.is_free:
+            transaction = Transaction.objects.create(
+                user=user,
+                pack=new_pack,
+                previous_pack=previous_pack,
+                transaction_type=transaction_type,
+                price_paid=0,
+                payment_status='paid',
+                phone_number=phone_number,
+            )
+            if current_sub:
+                current_sub.is_active = False
+                current_sub.save()
+            Subscription.objects.create(user=user, pack=new_pack)
+            return Response({
+                'success': True,
+                'is_free': True,
+                'message': 'Abonnement gratuit activé avec succès.',
+                'pack': new_pack.name,
+                'amount': '0',
+            }, status=status.HTTP_200_OK)
 
         # Créer la transaction en statut pending (sans token_pay pour l'instant)
         transaction = Transaction.objects.create(

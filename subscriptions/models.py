@@ -38,6 +38,7 @@ class Pack(models.Model):
     features = models.JSONField(default=list, blank=True)
     is_best_plan = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    is_free = models.BooleanField(default=False, verbose_name="Pack gratuit (sans paiement)")
 
     # === NOUVEAUX CHAMPS QUOTA ===
     image_corrections_limit = models.PositiveIntegerField(

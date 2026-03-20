@@ -45,6 +45,21 @@
                 <input type="email" name="email" id="email" value="{{ user.email|default:'' }}" class="block w-full dark-input text-sm" placeholder="email@exemple.com">
             </div>
 
+            <!-- Rôle -->
+            <div>
+                <label class="block text-sm font-medium text-white/70 mb-2">Role</label>
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="role" value="student" {% if user.role == 'student' %}checked{% endif %} class="w-4 h-4 text-primary-500 bg-white/5 border-white/20">
+                        <span class="text-sm text-white/70">Etudiant</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="role" value="teacher" {% if user.role == 'teacher' %}checked{% endif %} class="w-4 h-4 text-accent-green bg-white/5 border-white/20">
+                        <span class="text-sm text-white/70">Enseignant</span>
+                    </label>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                     <label for="country" class="block text-sm font-medium text-white/70 mb-1">Pays</label>

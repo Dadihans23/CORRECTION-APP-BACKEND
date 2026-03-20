@@ -24,56 +24,57 @@
 
 <!-- KPI stat cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-    <!-- Total Utilisateurs -->
+
+    <!-- Etudiants -->
     <div class="stat-card glass-card rounded-xl p-5 border-l-4 border-l-primary-500">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Total Utilisateurs</p>
-                <p class="mt-2 text-2xl font-bold text-white">{{ total_users }}</p>
-            </div>
-            <div class="w-10 h-10 rounded-lg bg-primary-500/15 flex items-center justify-center">
-                <svg class="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Etudiants</p>
+            <div class="w-9 h-9 rounded-lg bg-primary-500/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422A12.083 12.083 0 0121 12c0 2.34-.97 4.45-2.53 5.96l-.003-.003L12 14zm0 0l-6.16-3.422A12.083 12.083 0 003 12c0 2.34.97 4.45 2.53 5.96L12 14z"/></svg>
             </div>
         </div>
+        <p class="text-2xl font-bold text-white">{{ total_students }}</p>
+        {% if new_students_month %}
+        <p class="mt-1 text-xs text-primary-400">+{{ new_students_month }} ce mois</p>
+        {% endif %}
+    </div>
+
+    <!-- Enseignants -->
+    <div class="stat-card glass-card rounded-xl p-5 border-l-4 border-l-accent-green">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Enseignants</p>
+            <div class="w-9 h-9 rounded-lg bg-accent-green/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-white">{{ total_teachers }}</p>
+        {% if new_teachers_month %}
+        <p class="mt-1 text-xs text-accent-green">+{{ new_teachers_month }} ce mois</p>
+        {% endif %}
     </div>
 
     <!-- Abonnements Actifs -->
     <div class="stat-card glass-card rounded-xl p-5 border-l-4 border-l-primary-400">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Abonnements Actifs</p>
-                <p class="mt-2 text-2xl font-bold text-white">{{ active_subscriptions }}</p>
-            </div>
-            <div class="w-10 h-10 rounded-lg bg-primary-400/15 flex items-center justify-center">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Abonnements Actifs</p>
+            <div class="w-9 h-9 rounded-lg bg-primary-400/15 flex items-center justify-center">
                 <svg class="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
             </div>
         </div>
-    </div>
-
-    <!-- Corrections -->
-    <div class="stat-card glass-card rounded-xl p-5 border-l-4 border-l-accent-violet">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Corrections</p>
-                <p class="mt-2 text-2xl font-bold text-white">{{ total_image_corrections }}</p>
-            </div>
-            <div class="w-10 h-10 rounded-lg bg-accent-violet/15 flex items-center justify-center">
-                <svg class="w-5 h-5 text-accent-violet" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            </div>
-        </div>
+        <p class="text-2xl font-bold text-white">{{ active_subscriptions }}</p>
+        <p class="mt-1 text-xs text-white/40">{{ total_users }} comptes au total</p>
     </div>
 
     <!-- Revenus periode -->
-    <div class="stat-card glass-card rounded-xl p-5 border-l-4 border-l-accent-green">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Revenus periode</p>
-                <p class="mt-2 text-2xl font-bold text-white">{{ revenue_period }} <span class="text-sm font-medium text-white/50">CFA</span></p>
-            </div>
-            <div class="w-10 h-10 rounded-lg bg-accent-green/15 flex items-center justify-center">
-                <svg class="w-5 h-5 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="stat-card glass-card rounded-xl p-5 border-l-4 border-l-accent-violet">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Revenus periode</p>
+            <div class="w-9 h-9 rounded-lg bg-accent-violet/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-accent-violet" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
         </div>
+        <p class="text-2xl font-bold text-white">{{ revenue_period }} <span class="text-sm font-medium text-white/50">CFA</span></p>
+        <p class="mt-1 text-xs text-white/40">Total : {{ total_revenue }} CFA</p>
     </div>
 </div>
 
@@ -129,17 +130,48 @@
     </div>
 </div>
 
-<!-- Bottom row: 3 small stat cards -->
+<!-- Bottom row: repartition + chat + corrections -->
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-    <!-- Utilisateurs actifs -->
+
+    <!-- Repartition Etudiant / Enseignant -->
     <div class="stat-card glass-card rounded-xl p-5">
-        <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-lg bg-primary-500/15 flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-xs font-medium text-white/50 uppercase tracking-wide mb-3">Repartition comptes</p>
+        <div class="space-y-3">
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="flex items-center gap-1.5 text-white/70">
+                        <span class="w-2 h-2 rounded-full bg-primary-500 inline-block"></span>
+                        Etudiants
+                    </span>
+                    <span class="font-semibold text-white">{{ total_students }}
+                        <span class="text-white/40 font-normal text-xs">
+                            {% if total_users %}({% widthratio total_students total_users 100 %}%){% endif %}
+                        </span>
+                    </span>
+                </div>
+                <div class="w-full bg-white/[0.06] rounded-full h-2">
+                    {% if total_users %}
+                    <div class="bg-primary-500 h-2 rounded-full" style="width: {% widthratio total_students total_users 100 %}%"></div>
+                    {% endif %}
+                </div>
             </div>
             <div>
-                <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Utilisateurs actifs</p>
-                <p class="mt-1 text-xl font-bold text-white">{{ active_users }}</p>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="flex items-center gap-1.5 text-white/70">
+                        <span class="w-2 h-2 rounded-full bg-accent-green inline-block"></span>
+                        Enseignants
+                    </span>
+                    <span class="font-semibold text-white">{{ total_teachers }}
+                        <span class="text-white/40 font-normal text-xs">
+                            {% if total_users %}({% widthratio total_teachers total_users 100 %}%){% endif %}
+                        </span>
+                    </span>
+                </div>
+                <div class="w-full bg-white/[0.06] rounded-full h-2">
+                    {% if total_users %}
+                    <div class="bg-accent-green h-2 rounded-full" style="width: {% widthratio total_teachers total_users 100 %}%"></div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -157,15 +189,16 @@
         </div>
     </div>
 
-    <!-- Revenus totaux -->
+    <!-- Corrections période -->
     <div class="stat-card glass-card rounded-xl p-5">
         <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-lg bg-accent-green/15 flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <div class="w-10 h-10 rounded-lg bg-accent-violet/15 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-accent-violet" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             </div>
             <div>
-                <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Revenus totaux</p>
-                <p class="mt-1 text-xl font-bold text-white">{{ total_revenue }} <span class="text-sm font-medium text-white/50">CFA</span></p>
+                <p class="text-xs font-medium text-white/50 uppercase tracking-wide">Corrections</p>
+                <p class="mt-1 text-xl font-bold text-white">{{ total_image_corrections }}</p>
+                <p class="text-xs text-white/40">sur la periode</p>
             </div>
         </div>
     </div>
@@ -176,6 +209,7 @@
 <script>
 (function() {
     const dateRange = {{ date_range|safe }};
+    const _cm = window.CM || {};
 
     const labels = dateRange.map(item => item.date);
     const imagesData = dateRange.map(item => item.images);
@@ -230,7 +264,9 @@
                     display: false,
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(15,15,23,0.95)',
+                    backgroundColor: _cm.tooltip,
+                    titleColor: _cm.tooltipText,
+                    bodyColor: _cm.tooltipText,
                     titleFont: { size: 12, weight: '600' },
                     bodyFont: { size: 12 },
                     padding: 10,
@@ -245,7 +281,7 @@
                     },
                     ticks: {
                         font: { size: 11 },
-                        color: 'rgba(255,255,255,0.4)',
+                        color: _cm.tick,
                     },
                     border: {
                         display: false,
@@ -254,11 +290,11 @@
                 y: {
                     beginAtZero: true,
                     grid: {
-                        color: 'rgba(255,255,255,0.06)',
+                        color: _cm.grid,
                     },
                     ticks: {
                         font: { size: 11 },
-                        color: 'rgba(255,255,255,0.4)',
+                        color: _cm.tick,
                         stepSize: 1,
                     },
                     border: {
@@ -269,5 +305,8 @@
         }
     });
 })();
+
+// Sync couleurs avec le thème actuel (dark/light)
+if (window.syncAdminCharts) window.syncAdminCharts();
 </script>
 {% endblock %}

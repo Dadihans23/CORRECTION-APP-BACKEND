@@ -12,6 +12,24 @@
 {% endblock %}
 
 {% block content %}
+<!-- Filtres + compteurs -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+    <div class="flex items-center gap-2">
+        <a href="{% url 'custom_admin:users' %}"
+           class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if not role_filter %}bg-primary-500 text-white{% else %}glass-card text-white/60 hover:text-white{% endif %}">
+            Tous ({{ total_students|add:total_teachers }})
+        </a>
+        <a href="?role=student"
+           class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if role_filter == 'student' %}bg-primary-500 text-white{% else %}glass-card text-white/60 hover:text-white{% endif %}">
+            Etudiants ({{ total_students }})
+        </a>
+        <a href="?role=teacher"
+           class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if role_filter == 'teacher' %}bg-accent-green text-white{% else %}glass-card text-white/60 hover:text-white{% endif %}">
+            Enseignants ({{ total_teachers }})
+        </a>
+    </div>
+</div>
+
 <div class="glass-card rounded-xl overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full">
@@ -21,8 +39,8 @@
                     <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Nom</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Telephone</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Role</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Statut</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Staff</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Inscrit le</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-white/40 uppercase tracking-wider bg-white/[0.03]">Actions</th>
                 </tr>
@@ -39,17 +57,17 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-white/60">{{ user.phone_number }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-white/60">{{ user.email|default:"-" }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
+                        {% if user.role == 'teacher' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-success">Enseignant</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-info">Etudiant</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
                         {% if user.is_active %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-success">Actif</span>
                         {% else %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-danger">Inactif</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        {% if user.is_staff %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-violet">Staff</span>
-                        {% else %}
-                        <span class="text-sm text-white/30">-</span>
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-white/50">{{ user.date_joined|date:"d/m/Y" }}</td>
