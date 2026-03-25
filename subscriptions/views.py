@@ -2,8 +2,11 @@
 import hmac
 import hashlib
 import uuid
+import re
+import logging
 import requests
 from django.conf import settings
+from django.db import transaction as db_transaction
 from django.http import HttpResponse
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -14,6 +17,11 @@ from django.utils import timezone
 
 from .models import Pack, Subscription, Transaction, UsageLog
 from .serializer import PackSerializer, SubscriptionSerializer, TransactionSerializer
+
+logger = logging.getLogger(__name__)
+
+# Regex E.164 : +suivi de 7 à 15 chiffres
+_PHONE_RE = re.compile(r'^\+[1-9]\d{6,14}$')
 
 
 class PackListCreateView(generics.ListCreateAPIView):
@@ -81,18 +89,23 @@ class SubscribeToPackView(generics.CreateAPIView):
 
         new_pack = get_object_or_404(Pack, id=pack_id, is_active=True)
 
-        # Pour les packs payants, phone_number est obligatoire
-        if not new_pack.is_free and not phone_number:
-            return Response({
-                'success': False,
-                'message': 'pack_id et phone_number sont requis.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        if not new_pack.is_free and (not settings.GENIUSPAY_API_KEY or not settings.GENIUSPAY_API_SECRET):
-            return Response({
-                'success': False,
-                'message': 'Service de paiement non configuré.'
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        # Pour les packs payants, phone_number est obligatoire et doit être au format E.164
+        if not new_pack.is_free:
+            if not phone_number:
+                return Response({
+                    'success': False,
+                    'message': 'pack_id et phone_number sont requis.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            if not _PHONE_RE.match(phone_number):
+                return Response({
+                    'success': False,
+                    'message': 'Numéro de téléphone invalide. Format attendu : +2250701234567'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            if not settings.GENIUSPAY_API_KEY or not settings.GENIUSPAY_API_SECRET:
+                return Response({
+                    'success': False,
+                    'message': 'Service de paiement non configuré.'
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         # Récupérer l'abonnement actif
         current_sub = Subscription.objects.filter(user=user, is_active=True).first()
@@ -113,73 +126,67 @@ class SubscribeToPackView(generics.CreateAPIView):
 
         # ── PACK GRATUIT : activation directe sans paiement ──
         if new_pack.is_free:
-            transaction = Transaction.objects.create(
-                user=user,
-                pack=new_pack,
-                previous_pack=previous_pack,
-                transaction_type=transaction_type,
-                price_paid=0,
-                payment_status='paid',
-                phone_number=phone_number,
-            )
-            if current_sub:
-                current_sub.is_active = False
-                current_sub.save()
-            Subscription.objects.create(user=user, pack=new_pack)
+            with db_transaction.atomic():
+                if current_sub:
+                    current_sub.is_active = False
+                    current_sub.save()
+                Subscription.objects.create(user=user, pack=new_pack)
+                Transaction.objects.create(
+                    user=user, pack=new_pack, previous_pack=previous_pack,
+                    transaction_type=transaction_type, price_paid=0,
+                    payment_status='paid', phone_number='',
+                )
             return Response({
-                'success': True,
-                'is_free': True,
+                'success': True, 'is_free': True,
                 'message': 'Abonnement gratuit activé avec succès.',
-                'pack': new_pack.name,
-                'amount': '0',
+                'pack': new_pack.name, 'amount': '0',
             }, status=status.HTTP_200_OK)
 
-        # Créer la transaction en statut pending (sans token_pay pour l'instant)
-        transaction = Transaction.objects.create(
-            user=user,
-            pack=new_pack,
-            previous_pack=previous_pack,
-            transaction_type=transaction_type,
-            price_paid=new_pack.price,
-            payment_status='pending',
-            phone_number=phone_number,
-        )
-
-        # ── MODE MOCK (dev) : page de paiement locale ──
-        if getattr(settings, 'PAYMENT_MOCK_MODE', False):
-            mock_token = f"MOCK-{uuid.uuid4().hex[:10].upper()}"
-            transaction.token_pay = mock_token
-            transaction.save()
-            payment_url = request.build_absolute_uri(
-                f'/api/subscription/payment/mock/{mock_token}/'
-            )
+        # ── Bug #9 : Anti double débit — vérifier une transaction pending récente ──
+        recent_pending = Transaction.objects.filter(
+            user=user, pack=new_pack, payment_status='pending',
+            created_at__gte=timezone.now() - timezone.timedelta(minutes=10)
+        ).exclude(token_pay=None).first()
+        if recent_pending:
+            # Retourner le paiement déjà initié sans en créer un nouveau
+            pay_url = request.build_absolute_uri(f'/api/subscription/payment/mock/{recent_pending.token_pay}/') \
+                if getattr(settings, 'PAYMENT_MOCK_MODE', False) else ''
             return Response({
                 'success': True,
-                'message': '[MOCK] Page de paiement simulée.',
-                'payment_url': payment_url,
-                'token_pay': mock_token,
+                'message': 'Paiement déjà en cours.',
+                'payment_url': pay_url,
+                'token_pay': recent_pending.token_pay,
                 'pack': new_pack.name,
                 'amount': str(int(new_pack.price)),
             }, status=status.HTTP_200_OK)
 
-        # ── MODE PRODUCTION : appel GeniusPay ──
-        nom_client = f"{user.first_name or ''} {user.last_name or ''}".strip() or str(user.phone_number)
+        # ── MODE MOCK (dev) : page de paiement locale ──
+        if getattr(settings, 'PAYMENT_MOCK_MODE', False):
+            mock_token = f"MOCK-{uuid.uuid4().hex[:10].upper()}"
+            Transaction.objects.create(
+                user=user, pack=new_pack, previous_pack=previous_pack,
+                transaction_type=transaction_type, price_paid=new_pack.price,
+                payment_status='pending', phone_number=phone_number,
+                token_pay=mock_token,
+            )
+            payment_url = request.build_absolute_uri(
+                f'/api/subscription/payment/mock/{mock_token}/'
+            )
+            return Response({
+                'success': True, 'message': '[MOCK] Page de paiement simulée.',
+                'payment_url': payment_url, 'token_pay': mock_token,
+                'pack': new_pack.name, 'amount': str(int(new_pack.price)),
+            }, status=status.HTTP_200_OK)
 
+        # ── MODE PRODUCTION : appel GeniusPay d'abord, Transaction créée APRÈS succès ──
+        nom_client = f"{user.first_name or ''} {user.last_name or ''}".strip() or str(user.phone_number)
         payload = {
             "amount": int(new_pack.price),
             "currency": "XOF",
             "description": f"Abonnement {new_pack.name} - Corrige Moi",
             "customer": {"name": nom_client, "phone": phone_number},
-            "metadata": {
-                "userId": user.id,
-                "transactionId": transaction.id,
-                "packId": new_pack.id,
-                "packName": new_pack.name,
-            },
+            "metadata": {"userId": user.id, "packId": new_pack.id, "packName": new_pack.name},
         }
-
-        # Ajouter success_url/error_url uniquement si ce sont des URLs HTTP valides
-        # (les deep links comme corrigemoi:// sont rejetés par GeniusPay)
         for field, key in [('success_url', 'return_url'), ('error_url', 'error_url')]:
             url = request.data.get(key, '')
             if url and url.startswith(('http://', 'https://')):
@@ -188,43 +195,65 @@ class SubscribeToPackView(generics.CreateAPIView):
         try:
             resp = requests.post(
                 f"{settings.GENIUSPAY_BASE_URL}/payments",
-                json=payload,
-                headers=_geniuspay_headers(),
-                timeout=15,
+                json=payload, headers=_geniuspay_headers(), timeout=15,
             )
             resp_data = resp.json()
         except Exception as e:
-            print(f"[GeniusPay] EXCEPTION: {type(e).__name__}: {e}")
-            transaction.payment_status = 'failed'
-            transaction.save()
+            logger.error(f"[GeniusPay] Erreur connexion: {type(e).__name__}: {e}")
             return Response({
                 'success': False,
                 'message': 'Erreur de connexion au service de paiement.'
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         if not resp_data.get('success'):
-            transaction.payment_status = 'failed'
-            transaction.save()
             error = resp_data.get('error', {})
             return Response({
                 'success': False,
-                'message': error.get('message', 'Erreur lors de l\'initialisation du paiement.')
+                'message': error.get('message', "Erreur lors de l'initialisation du paiement.")
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # GeniusPay a accepté — on crée maintenant la Transaction (plus de zombie possible)
         payment_data = resp_data['data']
-        # checkout_url quand payment_method non spécifié, payment_url sinon (les deux sont présents)
         pay_url = payment_data.get('checkout_url') or payment_data.get('payment_url', '')
-        transaction.token_pay = payment_data['reference']
-        transaction.save()
+        token_pay = payment_data['reference']
+
+        Transaction.objects.create(
+            user=user, pack=new_pack, previous_pack=previous_pack,
+            transaction_type=transaction_type, price_paid=new_pack.price,
+            payment_status='pending', phone_number=phone_number,
+            token_pay=token_pay,
+        )
 
         return Response({
             'success': True,
-            'message': 'Paiement initié. Redirigez l\'utilisateur vers payment_url.',
-            'payment_url': pay_url,
-            'token_pay': payment_data['reference'],
-            'pack': new_pack.name,
-            'amount': str(int(new_pack.price)),
+            'message': "Paiement initié. Redirigez l'utilisateur vers payment_url.",
+            'payment_url': pay_url, 'token_pay': token_pay,
+            'pack': new_pack.name, 'amount': str(int(new_pack.price)),
         }, status=status.HTTP_200_OK)
+
+
+def _send_push_notification(user, title: str, body: str):
+    """Envoie une notification push Firebase si le token FCM est disponible."""
+    fcm_token = getattr(user, 'fcm_token', None)
+    if not fcm_token:
+        return
+    try:
+        import firebase_admin
+        from firebase_admin import messaging, credentials as fb_credentials
+        creds_path = getattr(settings, 'FIREBASE_CREDENTIALS_PATH', None)
+        if not creds_path:
+            return
+        # Initialise l'app Firebase une seule fois
+        if not firebase_admin._apps:
+            cred = fb_credentials.Certificate(creds_path)
+            firebase_admin.initialize_app(cred)
+        message = messaging.Message(
+            notification=messaging.Notification(title=title, body=body),
+            token=fcm_token,
+        )
+        messaging.send(message)
+    except Exception as e:
+        logger.warning(f'[FCM] Échec notification push pour {user}: {e}')
 
 
 def _activate_subscription(transaction):
@@ -251,6 +280,13 @@ def _activate_subscription(transaction):
         subscription.expires_at = timezone.now() + timezone.timedelta(days=new_pack.duration)
     subscription.save()
 
+    # Notification push Firebase (UX #10)
+    _send_push_notification(
+        user,
+        title='Abonnement activé ! 🎉',
+        body=f'Votre pack {new_pack.name} est maintenant actif. Bonne correction !',
+    )
+
 
 def _verify_geniuspay_signature(timestamp: str, raw_body: bytes, signature: str) -> bool:
     """
@@ -259,7 +295,9 @@ def _verify_geniuspay_signature(timestamp: str, raw_body: bytes, signature: str)
     """
     secret = settings.GENIUSPAY_WEBHOOK_SECRET
     if not secret:
-        return True  # Pas de secret configuré → skip en dev
+        # Secret absent = configuration incomplète → on rejette pour éviter les fausses activations
+        logger.error("[GeniusPay] GENIUSPAY_WEBHOOK_SECRET non configuré — webhook rejeté.")
+        return False
     data_to_sign = timestamp.encode() + b'.' + raw_body
     expected = hmac.new(
         secret.encode(),
@@ -302,10 +340,16 @@ def geniuspay_webhook(request):
     if event == 'payment.success':
         if transaction.payment_status == 'paid':
             return Response({'status': 'already_processed'}, status=status.HTTP_200_OK)
-        transaction.payment_status = 'paid'
-        transaction.payment_method = tx_data.get('provider') or tx_data.get('payment_method', '')
-        transaction.save()
-        _activate_subscription(transaction)
+        # Bug #10 — Atomique : si _activate_subscription échoue, le statut 'paid' n'est pas persisté
+        try:
+            with db_transaction.atomic():
+                transaction.payment_status = 'paid'
+                transaction.payment_method = tx_data.get('provider') or tx_data.get('payment_method', '')
+                transaction.save()
+                _activate_subscription(transaction)
+        except Exception as e:
+            logger.error(f"[Webhook] Échec activation abonnement pour {transaction.token_pay}: {e}")
+            return Response({'status': 'activation_error'}, status=status.HTTP_200_OK)
 
     elif event in ('payment.failed', 'payment.cancelled', 'payment.expired'):
         if transaction.payment_status not in ('paid', 'cancelled', 'failed'):
@@ -364,10 +408,11 @@ def check_payment_status(request, token_pay):
         our_status = GENIUSPAY_STATUS_MAP.get(geniuspay_status, 'pending')
 
         if our_status == 'paid' and transaction.payment_status != 'paid':
-            transaction.payment_status = 'paid'
-            transaction.payment_method = data['data'].get('payment_method', '')
-            transaction.save()
-            _activate_subscription(transaction)
+            with db_transaction.atomic():
+                transaction.payment_status = 'paid'
+                transaction.payment_method = data['data'].get('payment_method', '')
+                transaction.save()
+                _activate_subscription(transaction)
 
         elif our_status in ('failed', 'cancelled') and transaction.payment_status == 'pending':
             transaction.payment_status = our_status

@@ -104,6 +104,15 @@ class ProcessImageView(APIView):
                     {'success': False, 'message': 'Aucune image fournie.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+
+            # Bug #6 — Limite taille image : 10 Mo
+            MAX_IMAGE_SIZE = 10 * 1024 * 1024
+            if image.size > MAX_IMAGE_SIZE:
+                return Response(
+                    {'success': False, 'message': 'Fichier trop volumineux (max 10 Mo).'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             image_bytes = image.read()
 
         try:
@@ -113,6 +122,13 @@ class ProcessImageView(APIView):
             type_exercice = context.get('type_exercice', 'Problème à résoudre')
             attente = context.get('attente', 'Solution étape par étape')
             infos = context.get('infos', '')
+
+            # Bug #7 — Limite longueur infos : 2000 caractères
+            if len(infos) > 2000:
+                return Response(
+                    {'success': False, 'message': 'Le champ "informations complémentaires" est trop long (max 2000 caractères).'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             logger.info(f"Contexte: Domaine={domaine}, Type={type_exercice}, Niveau={niveau}")
 
@@ -648,8 +664,11 @@ JSON :
 
 class HistoryView(APIView):
     permission_classes = [IsAuthenticated]
+    PAGE_SIZE = 20
+
     def get(self, request):
         corrections = CorrectionHistory.objects.filter(user=request.user)
+
         # Applique la restriction history_days du pack actif
         subscription = (
             request.user.subscriptions
@@ -663,9 +682,23 @@ class HistoryView(APIView):
             if history_days and int(history_days) > 0:
                 cutoff = timezone.now() - timezone.timedelta(days=int(history_days))
                 corrections = corrections.filter(created_at__gte=cutoff)
+
         corrections = corrections.order_by('-created_at')
-        serializer = CorrectionHistorySerializer(corrections, many=True)
-        return Response(serializer.data)
+
+        # Bug #8 — Pagination : 20 items/page
+        from django.core.paginator import Paginator
+        page_number = request.GET.get('page', 1)
+        paginator = Paginator(corrections, self.PAGE_SIZE)
+        page_obj = paginator.get_page(page_number)
+
+        serializer = CorrectionHistorySerializer(page_obj.object_list, many=True)
+        return Response({
+            'count': paginator.count,
+            'num_pages': paginator.num_pages,
+            'current_page': page_obj.number,
+            'has_next': page_obj.has_next(),
+            'results': serializer.data,
+        })
 
 # backend/views.py
 import google.generativeai as genai

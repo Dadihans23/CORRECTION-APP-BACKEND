@@ -1,8 +1,9 @@
 from django.urls import path
 from .views import (
-    SignupRequestView, OTPVerificationView, LoginView,
+    SignupRequestView, OTPVerificationView, LoginView, LogoutView,
     PasswordResetRequestView, PasswordResetConfirmView,
-    ChangePasswordView, ProfileView, UpdateProfileView
+    ChangePasswordView, ProfileView, UpdateProfileView,
+    ResendOTPView, UpdateFCMTokenView,
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -12,11 +13,13 @@ urlpatterns = [
     path('signup/request/', SignupRequestView.as_view(), name='signup_request'),
     path('verify-otp/', OTPVerificationView.as_view(), name='verify_otp'),
     path('login/', LoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('password/reset/request/', PasswordResetRequestView.as_view(), name='password_reset_request'),
     path('password/reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('password/change/', ChangePasswordView.as_view(), name='change_password'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('profile/update/', UpdateProfileView.as_view(), name='update_profile'),
-
+    path('otp/resend/', ResendOTPView.as_view(), name='otp_resend'),
+    path('fcm-token/', UpdateFCMTokenView.as_view(), name='update_fcm_token'),
 ]

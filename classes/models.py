@@ -45,6 +45,7 @@ class Student(models.Model):
 
     class Meta:
         ordering = ['last_name', 'first_name']
+        unique_together = ('classroom', 'first_name', 'last_name')
 
     def __str__(self):
         return f"{self.last_name} {self.first_name}"

@@ -128,17 +128,32 @@ def admin_login(request):
     error = None
 
     if request.method == 'POST':
+        # --- Rate limiting : 5 tentatives échouées / 5 min par IP ---
+        from django.core.cache import cache
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', '')).split(',')[0].strip()
+        cache_key = f'admin_login_attempts_{ip}'
+        attempts = cache.get(cache_key, 0)
+        if attempts >= 5:
+            error = "Trop de tentatives. Veuillez réessayer dans quelques minutes."
+            return render(request, 'custom_admin/login.html', {
+                'error': error,
+                'next': next_url,
+                'year': datetime.now().year,
+            })
+
         phone = request.POST.get('phone_number', '').strip()
         password = request.POST.get('password', '')
         next_url = request.POST.get('next', '/custom-admin/')
 
         user = authenticate(request, username=phone, password=password)
         if user is not None and user.is_staff:
+            cache.delete(cache_key)
             auth_login(request, user)
             return redirect(next_url)
         elif user is not None and not user.is_staff:
             error = "Ce compte n'a pas les droits d'administration."
         else:
+            cache.set(cache_key, attempts + 1, timeout=300)  # bloqué 5 min
             error = "Numéro de téléphone ou mot de passe incorrect."
 
     return render(request, 'custom_admin/login.html', {
@@ -278,7 +293,7 @@ def admin_dashboard(request):
 
 @staff_required
 def admin_users(request):
-    users = CustomUser.objects.all().order_by('-date_joined')
+    users = CustomUser.objects.select_related().prefetch_related('subscriptions').order_by('-date_joined')
 
     # Filtre par rôle
     role_filter = request.GET.get('role', '')
@@ -288,7 +303,7 @@ def admin_users(request):
     total_students = CustomUser.objects.filter(role='student').count()
     total_teachers = CustomUser.objects.filter(role='teacher').count()
 
-    per_page = int(request.GET.get('per_page', 10))
+    per_page = int(request.GET.get('per_page', 50))
     paginator = Paginator(users, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
@@ -527,13 +542,38 @@ def admin_user_delete(request, user_id):
     if user == request.user:
         return JsonResponse({'status': 'error', 'message': 'Vous ne pouvez pas vous supprimer vous-même.'})
 
-    user_phone = user.phone_number
-    user.delete()
+    if request.method == 'GET':
+        # Retourne les stats de cascade avant confirmation
+        classrooms_count = Classroom.objects.filter(teacher=user).count()
+        students_count = Student.objects.filter(classroom__teacher=user).count()
+        assignments_count = Assignment.objects.filter(classroom__teacher=user).count()
+        subscriptions_count = Subscription.objects.filter(user=user).count()
+        corrections_count = user.correction_history.count() if hasattr(user, 'correction_history') else 0
+        return JsonResponse({
+            'status': 'ok',
+            'user': {
+                'id': user.id,
+                'phone_number': user.phone_number,
+                'full_name': f'{user.first_name} {user.last_name}'.strip(),
+            },
+            'cascade': {
+                'classrooms': classrooms_count,
+                'students': students_count,
+                'assignments': assignments_count,
+                'subscriptions': subscriptions_count,
+                'corrections': corrections_count,
+            }
+        })
 
-    return JsonResponse({
-        'status': 'success',
-        'message': f'Utilisateur {user_phone} supprimé avec succès !'
-    })
+    if request.method == 'POST':
+        user_phone = user.phone_number
+        user.delete()
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Utilisateur {user_phone} supprimé avec succès !'
+        })
+
+    return JsonResponse({'status': 'error', 'message': 'Méthode non autorisée.'}, status=405)
     
     
     
@@ -591,10 +631,19 @@ def admin_pack_create(request):
                 features = features_raw.splitlines()
                 features = [f.strip() for f in features if f.strip()]
 
+            # Validation du prix
+            try:
+                price_val = float(request.POST.get('price', 0))
+                if price_val < 0:
+                    raise ValueError("Le prix ne peut pas être négatif.")
+            except (TypeError, ValueError) as price_err:
+                messages.error(request, f'Prix invalide : {price_err}')
+                return render(request, 'custom_admin/admin/pack_create.html', {'all_features': Feature.objects.all()})
+
             # Création du pack
             pack = Pack.objects.create(
                 name=request.POST['name'].strip(),
-                price=request.POST['price'],
+                price=price_val,
                 description=request.POST['description'].strip(),
                 image_corrections_limit=int(request.POST.get('image_corrections_limit', 0)),
                 chat_questions_limit=int(request.POST.get('chat_questions_limit', 0)),
@@ -652,8 +701,22 @@ def admin_pack_edit(request, pack_id):
             except json.JSONDecodeError:
                 features = []
 
+        try:
+            price_val = float(request.POST.get('price', 0))
+            if price_val < 0:
+                raise ValueError("Le prix ne peut pas être négatif.")
+        except (TypeError, ValueError) as price_err:
+            messages.error(request, f'Prix invalide : {price_err}')
+            all_features = Feature.objects.all()
+            current_pack_features = {pf.feature.key: pf.value for pf in pack.pack_features.select_related('feature')}
+            return render(request, 'custom_admin/admin/pack_edit.html', {
+                'pack': pack,
+                'all_features': all_features,
+                'current_pack_features_json': json.dumps(current_pack_features),
+            })
+
         pack.name = request.POST['name']
-        pack.price = request.POST['price']
+        pack.price = price_val
         pack.description = request.POST['description']
         pack.image_corrections_limit = request.POST.get('image_corrections_limit', 0)
         pack.chat_questions_limit = request.POST.get('chat_questions_limit', 0)

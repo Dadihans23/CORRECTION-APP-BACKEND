@@ -1,5 +1,6 @@
 # backend/models.py
 from django.db import models
+from django.db.models import F
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.utils.text import slugify
@@ -120,16 +121,22 @@ class Subscription(models.Model):
         super().save(*args, **kwargs)
 
     def deduct_image_correction(self):
-        if self.image_corrections_remaining <= 0:
+        # Update atomique : évite la race condition entre deux requêtes simultanées
+        updated = Subscription.objects.filter(
+            pk=self.pk, image_corrections_remaining__gt=0
+        ).update(image_corrections_remaining=F('image_corrections_remaining') - 1)
+        if not updated:
             raise ValueError("Quota d'envoi d'images épuisé.")
-        self.image_corrections_remaining -= 1
-        self.save()
+        self.refresh_from_db()
 
     def deduct_chat_question(self):
-        if self.chat_questions_remaining <= 0:
+        # Update atomique : évite la race condition entre deux requêtes simultanées
+        updated = Subscription.objects.filter(
+            pk=self.pk, chat_questions_remaining__gt=0
+        ).update(chat_questions_remaining=F('chat_questions_remaining') - 1)
+        if not updated:
             raise ValueError("Quota de questions au chatbot épuisé.")
-        self.chat_questions_remaining -= 1
-        self.save()
+        self.refresh_from_db()
 
     def is_expired(self):
         if self.pack.duration == 0:

@@ -1,8 +1,12 @@
 # classes/views.py
 import json
+import re
+from datetime import datetime
+
 import google.generativeai as genai
 
 from django.conf import settings as django_settings
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 
 from rest_framework.decorators import api_view, permission_classes, parser_classes
@@ -21,6 +25,8 @@ from .serializers import (
 )
 
 genai.configure(api_key=django_settings.GEMINI_API_KEY)
+
+_SCHOOL_YEAR_RE = re.compile(r'^\d{4}(-\d{4})?$')
 
 
 # ─────────────────────────────────────────────
@@ -201,6 +207,12 @@ def classrooms(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    if school_year and not _SCHOOL_YEAR_RE.match(school_year):
+        return Response(
+            {'success': False, 'message': "Format d'année scolaire invalide (ex: 2024-2025 ou 2025)."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     classroom = Classroom.objects.create(
         teacher=request.user,
         name=name,
@@ -212,15 +224,13 @@ def classrooms(request):
     # Ajout optionnel d'élèves en lot à la création (après OCR)
     students_data = data.get('students', [])
     if students_data:
-        Student.objects.bulk_create([
-            Student(
-                classroom=classroom,
-                first_name=s.get('first_name', '').strip(),
-                last_name=s.get('last_name', '').strip(),
-            )
-            for s in students_data
-            if s.get('last_name', '').strip()
-        ])
+        to_create = []
+        for s in students_data:
+            fn = s.get('first_name', '').strip()[:100]
+            ln = s.get('last_name', '').strip()[:100]
+            if ln:
+                to_create.append(Student(classroom=classroom, first_name=fn, last_name=ln))
+        Student.objects.bulk_create(to_create, ignore_conflicts=True)
 
     return Response(
         {'success': True, 'classroom': ClassroomDetailSerializer(classroom).data},
@@ -242,10 +252,16 @@ def classroom_detail(request, classroom_id):
 
     if request.method == 'PUT':
         data = request.data
+        new_year = data.get('school_year', classroom.school_year).strip()
+        if 'school_year' in data and new_year and not _SCHOOL_YEAR_RE.match(new_year):
+            return Response(
+                {'success': False, 'message': "Format d'année scolaire invalide (ex: 2024-2025 ou 2025)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         classroom.name = data.get('name', classroom.name).strip()
         classroom.subject = data.get('subject', classroom.subject).strip()
         classroom.school_name = data.get('school_name', classroom.school_name).strip()
-        classroom.school_year = data.get('school_year', classroom.school_year).strip()
+        classroom.school_year = new_year
         classroom.save()
         return Response({'success': True, 'classroom': ClassroomDetailSerializer(classroom).data})
 
@@ -272,31 +288,35 @@ def add_students(request, classroom_id):
     students_data = data.get('students')
     if students_data is None:
         # Ajout individuel
-        first_name = data.get('first_name', '').strip()
-        last_name = data.get('last_name', '').strip()
+        first_name = data.get('first_name', '').strip()[:100]
+        last_name = data.get('last_name', '').strip()[:100]
         if not last_name:
             return Response(
                 {'success': False, 'message': 'Le nom de famille est requis.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        student = Student.objects.create(
-            classroom=classroom, first_name=first_name, last_name=last_name
-        )
+        try:
+            student = Student.objects.create(
+                classroom=classroom, first_name=first_name, last_name=last_name
+            )
+        except IntegrityError:
+            return Response(
+                {'success': False, 'message': 'Cet élève existe déjà dans cette classe.'},
+                status=status.HTTP_409_CONFLICT
+            )
         return Response(
             {'success': True, 'student': StudentSerializer(student).data},
             status=status.HTTP_201_CREATED
         )
 
-    # Ajout en lot
-    created = Student.objects.bulk_create([
-        Student(
-            classroom=classroom,
-            first_name=s.get('first_name', '').strip(),
-            last_name=s.get('last_name', '').strip(),
-        )
-        for s in students_data
-        if s.get('last_name', '').strip()
-    ])
+    # Ajout en lot — validation + ignore doublons
+    to_create = []
+    for s in students_data:
+        fn = s.get('first_name', '').strip()[:100]
+        ln = s.get('last_name', '').strip()[:100]
+        if ln:
+            to_create.append(Student(classroom=classroom, first_name=fn, last_name=ln))
+    created = Student.objects.bulk_create(to_create, ignore_conflicts=True)
     return Response(
         {'success': True, 'created': len(created), 'students': StudentSerializer(
             classroom.students.all(), many=True
@@ -344,14 +364,54 @@ def assignments(request, classroom_id):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    # Bug #19 — Validation format date
+    try:
+        datetime.strptime(str(date), '%Y-%m-%d')
+    except (ValueError, TypeError):
+        return Response(
+            {'success': False, 'message': 'Format de date invalide (YYYY-MM-DD attendu).'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Bugs #15 & #21 — Validation valeurs numériques
+    try:
+        coefficient = float(data.get('coefficient', 1.0))
+        max_score = float(data.get('max_score', 20.0))
+        global_bonus = float(data.get('global_bonus', 0.0))
+    except (TypeError, ValueError):
+        return Response(
+            {'success': False, 'message': 'Valeurs numériques invalides.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if coefficient <= 0:
+        return Response(
+            {'success': False, 'message': 'Le coefficient doit être supérieur à 0.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if max_score <= 0:
+        return Response(
+            {'success': False, 'message': 'Le barème doit être supérieur à 0.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if global_bonus < 0:
+        return Response(
+            {'success': False, 'message': 'Le bonus ne peut pas être négatif.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if global_bonus > max_score:
+        return Response(
+            {'success': False, 'message': 'Le bonus ne peut pas dépasser le barème.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     assignment = Assignment.objects.create(
         classroom=classroom,
         name=name,
         assignment_type=data.get('assignment_type', 'devoir'),
         date=date,
-        coefficient=float(data.get('coefficient', 1.0)),
-        max_score=float(data.get('max_score', 20.0)),
-        global_bonus=float(data.get('global_bonus', 0.0)),
+        coefficient=coefficient,
+        max_score=max_score,
+        global_bonus=global_bonus,
     )
     return Response(
         {'success': True, 'assignment': AssignmentSerializer(assignment).data},
@@ -369,12 +429,52 @@ def assignment_detail(request, assignment_id):
 
     if request.method == 'PUT':
         data = request.data
+        new_date = data.get('date', assignment.date)
+        # Bug #19 — Validation format date si modifiée
+        if 'date' in data:
+            try:
+                datetime.strptime(str(new_date), '%Y-%m-%d')
+            except (ValueError, TypeError):
+                return Response(
+                    {'success': False, 'message': 'Format de date invalide (YYYY-MM-DD attendu).'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        # Bugs #15 & #21 — Validation valeurs numériques
+        try:
+            coefficient = float(data.get('coefficient', assignment.coefficient))
+            max_score = float(data.get('max_score', assignment.max_score))
+            global_bonus = float(data.get('global_bonus', assignment.global_bonus))
+        except (TypeError, ValueError):
+            return Response(
+                {'success': False, 'message': 'Valeurs numériques invalides.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if coefficient <= 0:
+            return Response(
+                {'success': False, 'message': 'Le coefficient doit être supérieur à 0.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if max_score <= 0:
+            return Response(
+                {'success': False, 'message': 'Le barème doit être supérieur à 0.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if global_bonus < 0:
+            return Response(
+                {'success': False, 'message': 'Le bonus ne peut pas être négatif.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if global_bonus > max_score:
+            return Response(
+                {'success': False, 'message': 'Le bonus ne peut pas dépasser le barème.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         assignment.name = data.get('name', assignment.name).strip()
         assignment.assignment_type = data.get('assignment_type', assignment.assignment_type)
-        assignment.date = data.get('date', assignment.date)
-        assignment.coefficient = float(data.get('coefficient', assignment.coefficient))
-        assignment.max_score = float(data.get('max_score', assignment.max_score))
-        assignment.global_bonus = float(data.get('global_bonus', assignment.global_bonus))
+        assignment.date = new_date
+        assignment.coefficient = coefficient
+        assignment.max_score = max_score
+        assignment.global_bonus = global_bonus
         assignment.save()
         return Response({'success': True, 'assignment': AssignmentSerializer(assignment).data})
 
@@ -505,7 +605,7 @@ def classroom_report(request, classroom_id):
             'full_name': s.full_name,
             'first_name': s.first_name,
             'last_name': s.last_name,
-            'average': s.average(),
+            'average': s.average() or 0,
             'grades': grades_row,
         })
 
@@ -522,7 +622,7 @@ def classroom_report(request, classroom_id):
             'name': classroom.name,
             'subject': classroom.subject,
             'school_year': classroom.school_year,
-            'class_average': classroom.class_average(),
+            'class_average': classroom.class_average() or 0,
         },
         'assignments': AssignmentSerializer(assignments_qs, many=True).data,
         'students': student_rows,
@@ -591,6 +691,29 @@ def attendance_sessions(request, classroom_id):
         return Response(
             {'success': False, 'message': 'Date et heure requises.'},
             status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Bug #19 — Validation format date
+    try:
+        datetime.strptime(str(date), '%Y-%m-%d')
+    except (ValueError, TypeError):
+        return Response(
+            {'success': False, 'message': 'Format de date invalide (YYYY-MM-DD attendu).'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Bug #20 — Validation format heure
+    if not re.match(r'^\d{2}:\d{2}(:\d{2})?$', str(time)):
+        return Response(
+            {'success': False, 'message': "Format d'heure invalide (HH:MM attendu)."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Bug #22 — Éviter les doublons de séance
+    if AttendanceSession.objects.filter(classroom=classroom, date=date, time=str(time)[:5]).exists():
+        return Response(
+            {'success': False, 'message': 'Une séance existe déjà pour cette classe à cette date et heure.'},
+            status=status.HTTP_409_CONFLICT
         )
 
     session = AttendanceSession.objects.create(
@@ -699,7 +822,7 @@ def classroom_stats(request, classroom_id):
         {
             'id': s.id,
             'full_name': s.full_name,
-            'average': avg,
+            'average': avg or 0,
             'rank': i + 1 if avg is not None else None,
         }
         for i, (s, avg) in enumerate(sorted_students)
@@ -734,13 +857,13 @@ def classroom_stats(request, classroom_id):
             'total_students': len(students),
             'total_assignments': len(assignments_qs),
             'total_sessions': total_sessions,
-            'class_average': classroom.class_average(),
+            'class_average': classroom.class_average() or 0,
             'attendance_rate': attendance_rate,
             'best_student': {
-                'id': best[0].id, 'full_name': best[0].full_name, 'average': best[1]
+                'id': best[0].id, 'full_name': best[0].full_name, 'average': best[1] or 0
             } if best else None,
             'worst_student': {
-                'id': worst[0].id, 'full_name': worst[0].full_name, 'average': worst[1]
+                'id': worst[0].id, 'full_name': worst[0].full_name, 'average': worst[1] or 0
             } if worst else None,
             'distribution': distribution,
             'ranking': ranking,
@@ -828,7 +951,7 @@ def student_stats(request, student_id):
             'school_name': classroom.school_name,
         },
         'stats': {
-            'average': student_avg,
+            'average': student_avg or 0,
             'rank': rank,
             'total_students': len(all_avgs),
             'total_ranked': total_ranked,

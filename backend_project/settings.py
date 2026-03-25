@@ -31,11 +31,14 @@ GENIUSPAY_WEBHOOK_SECRET = os.getenv('GENIUSPAY_WEBHOOK_SECRET', '')
 # Mode mock : simule la page de paiement en local (mettre False en production)
 PAYMENT_MOCK_MODE = False
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)*_3xsh-gg-kg@eca5y(tbiib&bd6qi3sux=s&58$^s-9!9bv_'
+# SECURITY: chargée depuis .env — ne jamais hardcoder en production
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-dev-only-key-change-in-production'
+)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# SECURITY: False en production (variable d'env DEBUG=True uniquement en dev)
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # ✅ CORS : Autoriser origines spécifiques
 ALLOWED_HOSTS = [
@@ -51,7 +54,8 @@ ALLOWED_HOSTS = [
     '10.244.164.222',
     '192.168.1.49',
     '192.168.1.30',
-    '10.244.164.222' 
+    '10.244.164.222',
+    '192.168.1.8',
 ]
 
 
@@ -86,14 +90,26 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',  # Exige authentification
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '60/min',
+        'user': '300/min',
+        'signup': '5/min',
+        'otp': '5/min',
+        'login': '10/min',
+        'password_reset': '5/min',
+    },
 }
 
 # ✅ Configuration SimpleJWT
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=365),  # Durée token accès
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=365),     # Durée refresh
-    'ROTATE_REFRESH_TOKENS': False, 
-    'BLACKLIST_AFTER_ROTATION': False,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),   # 30 min en production
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),       # 7 jours
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
 
     'AUTH_HEADER_TYPES': ('Bearer',),  # Format "Bearer <token>"
@@ -117,6 +133,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'authentification',
     'treatment',
     'subscriptions',

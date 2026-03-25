@@ -42,7 +42,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     school_level = models.CharField(max_length=100, blank=True, null=True)
     institution = models.CharField(max_length=200, blank=True, null=True)
     age = models.PositiveIntegerField(blank=True, null=True)
-
+    fcm_token = models.CharField(max_length=512, blank=True, null=True)
 
     date_joined = models.DateTimeField(default=timezone.now)
     
@@ -86,12 +86,10 @@ class OTPCode(models.Model):
     purpose = models.CharField(max_length=20, choices=[('signup', 'Inscription'), ('reset', 'Réinitialisation')])
 
     def save(self, *args, **kwargs):
-    # OTP fixe pour les tests
-        self.code = "123456"
-        
+        if not self.code:
+            self.code = str(random.randint(100000, 999999))
         if not self.expires_at:
             self.expires_at = timezone.now() + timezone.timedelta(minutes=10)
-        
         super().save(*args, **kwargs)
 
     def is_valid(self):
