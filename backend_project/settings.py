@@ -31,13 +31,8 @@ GENIUSPAY_WEBHOOK_SECRET = os.getenv('GENIUSPAY_WEBHOOK_SECRET', '')
 # Mode mock : simule la page de paiement en local (mettre False en production)
 PAYMENT_MOCK_MODE = False
 
-# SECURITY: chargée depuis .env — ne jamais hardcoder en production
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-dev-only-key-change-in-production'
-)
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-only-key-change-in-production')
 
-# SECURITY: False en production (variable d'env DEBUG=True uniquement en dev)
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # ✅ CORS : Autoriser origines spécifiques
