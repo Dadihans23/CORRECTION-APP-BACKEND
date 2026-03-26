@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 os.environ['DJANGO_SERVER_TIMEOUT'] = '60'
 
 # Clé API Gemini
-GEMINI_API_KEY = 'AIzaSyC71_9KRxK-UiS9e5QUyppubzL4JCAEXKo'
+GEMINI_API_KEY = 'AIzaSyAGwk-SeWShXR9ukmZF1SjSubBg2QnnEGE'
 
 # GeniusPay Payment API
 GENIUSPAY_BASE_URL       = 'https://pay.genius.ci/api/v1/merchant'
