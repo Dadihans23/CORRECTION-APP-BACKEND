@@ -225,19 +225,19 @@ def admin_dashboard(request):
     # === REVENUS (période) — uniquement les paiements confirmés ===
     revenue_period = Transaction.objects.filter(
         transaction_filter,
-        transaction_type='subscription',
+        transaction_type__in=['subscription', 'upgrade', 'renewal'],
         payment_status='paid',
     ).aggregate(total=Sum('price_paid'))['total'] or 0
 
     total_revenue = Transaction.objects.filter(
-        transaction_type='subscription',
+        transaction_type__in=['subscription', 'upgrade', 'renewal'],
         payment_status='paid',
     ).aggregate(total=Sum('price_paid'))['total'] or 0
 
     # === TOP PACKS (période) ===
     top_packs = Transaction.objects.filter(
         transaction_filter,
-        transaction_type='subscription',
+        transaction_type__in=['subscription', 'upgrade', 'renewal'],
         payment_status='paid',
     ).values('pack__name').annotate(
         sales=Count('id'),
@@ -413,7 +413,7 @@ def admin_user_detail(request, user_id):
 
     # === STATS UTILISATEUR ===
     total_spent = Transaction.objects.filter(
-        user=user, transaction_type='subscription', payment_status='paid'
+        user=user, transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid'
     ).aggregate(total=Sum('price_paid'))['total'] or 0
 
     total_image_corrections = ImageCorrection.objects.filter(user=user).count()
@@ -602,7 +602,7 @@ def admin_packs(request):
     for pack in packs:
         revenue = Transaction.objects.filter(
             pack=pack,
-            transaction_type='subscription',
+            transaction_type__in=['subscription', 'upgrade', 'renewal'],
             payment_status='paid',
         ).aggregate(total=Sum('price_paid'))['total'] or 0
         pack.revenue = int(revenue)  # On ajoute un attribut temporaire
@@ -674,7 +674,7 @@ def admin_pack_detail(request, pack_id):
     # Stats réelles
     subscribers = pack.subscriptions.filter(is_active=True).count()
     total_revenue = Transaction.objects.filter(
-        pack=pack, transaction_type='subscription', payment_status='paid'
+        pack=pack, transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid'
     ).aggregate(total=Sum('price_paid'))['total'] or 0
 
     # Dernières souscriptions
@@ -1017,7 +1017,7 @@ def admin_billing_stats(request):
         month_end = next_month - timedelta(days=next_month.day)
 
         revenue = Transaction.objects.filter(
-            transaction_type='subscription',
+            transaction_type__in=['subscription', 'upgrade', 'renewal'],
             payment_status='paid',
             created_at__gte=month_start,
             created_at__lte=month_end
@@ -1028,7 +1028,7 @@ def admin_billing_stats(request):
 
     # === TOP 5 UTILISATEURS PAR REVENUS ===
     top_revenue_users = Transaction.objects.filter(
-        transaction_type='subscription', payment_status='paid'
+        transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid'
     ).values('user__phone_number', 'pack__name').annotate(
         total_revenue=Sum('price_paid')
     ).order_by('-total_revenue')[:5]
@@ -1044,7 +1044,7 @@ def admin_billing_stats(request):
     # === MÉTHODES DE PAIEMENT (simulé car pas de champ) ===
     # Tu peux ajouter un champ `payment_method` dans Transaction plus tard
     payment_methods = {
-        'mobile_money': Transaction.objects.filter(transaction_type='subscription', payment_status='paid').count(),
+        'mobile_money': Transaction.objects.filter(transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').count(),
         'card': 0,
         'bank': 0,
         'admin': 0
@@ -1060,9 +1060,9 @@ def admin_billing_stats(request):
     }
 
     # === STATS GLOBAUX ===
-    total_revenue = float(Transaction.objects.filter(transaction_type='subscription', payment_status='paid').aggregate(total=Sum('price_paid'))['total'] or 0)
+    total_revenue = float(Transaction.objects.filter(transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').aggregate(total=Sum('price_paid'))['total'] or 0)
     this_month_revenue = float(Transaction.objects.filter(
-        transaction_type='subscription',
+        transaction_type__in=['subscription', 'upgrade', 'renewal'],
         payment_status='paid',
         created_at__month=today.month,
         created_at__year=today.year
@@ -1070,7 +1070,7 @@ def admin_billing_stats(request):
 
     last_month = today.replace(day=1) - timedelta(days=1)
     last_month_revenue = float(Transaction.objects.filter(
-        transaction_type='subscription',
+        transaction_type__in=['subscription', 'upgrade', 'renewal'],
         payment_status='paid',
         created_at__month=last_month.month,
         created_at__year=last_month.year
@@ -1245,7 +1245,7 @@ def admin_analytics(request):
     new_users_last_month = CustomUser.objects.filter(role='student', date_joined__gte=last_month, date_joined__lt=this_month).count()
     user_growth = round(((new_users_this_month - new_users_last_month) / new_users_last_month * 100), 1) if new_users_last_month else 100
 
-    total_revenue = float(Transaction.objects.filter(transaction_type='subscription', payment_status='paid').aggregate(t=Sum('price_paid'))['t'] or 0)
+    total_revenue = float(Transaction.objects.filter(transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').aggregate(t=Sum('price_paid'))['t'] or 0)
 
     # Rétention 30j
     users_30d_ago = CustomUser.objects.filter(date_joined__gte=now - timedelta(days=30))
@@ -1269,7 +1269,7 @@ def admin_analytics(request):
 
         img_count = ImageCorrection.objects.filter(created_at__date=date).count()
         chat_count = ChatMessage.objects.filter(role='user', created_at__date=date).count()
-        rev = Transaction.objects.filter(created_at__date=date, transaction_type='subscription', payment_status='paid').aggregate(r=Sum('price_paid'))['r'] or 0
+        rev = Transaction.objects.filter(created_at__date=date, transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').aggregate(r=Sum('price_paid'))['r'] or 0
 
         daily_images.append(img_count)
         daily_chat.append(chat_count)
@@ -1278,7 +1278,7 @@ def admin_analytics(request):
     # === TOP PACKS ===
     top_packs = Transaction.objects.filter(
         created_at__gte=days_ago,
-        transaction_type='subscription',
+        transaction_type__in=['subscription', 'upgrade', 'renewal'],
         payment_status='paid',
     ).values('pack__name').annotate(
         sales=Count('id'),
@@ -1354,9 +1354,9 @@ def admin_reports(request):
         {
             'name': 'Rapport mensuel des ventes',
             'type': 'sales',
-            'last_generated': Transaction.objects.filter(transaction_type='subscription', payment_status='paid').aggregate(m=Max('created_at'))['m'] or now - timedelta(days=1),
-            'total_sales': Transaction.objects.filter(transaction_type='subscription', payment_status='paid').count(),
-            'total_revenue': float(Transaction.objects.filter(transaction_type='subscription', payment_status='paid').aggregate(t=Sum('price_paid'))['t'] or 0)
+            'last_generated': Transaction.objects.filter(transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').aggregate(m=Max('created_at'))['m'] or now - timedelta(days=1),
+            'total_sales': Transaction.objects.filter(transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').count(),
+            'total_revenue': float(Transaction.objects.filter(transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').aggregate(t=Sum('price_paid'))['t'] or 0)
         },
         {
             'name': 'Analyse corrections photo',
@@ -1376,7 +1376,7 @@ def admin_reports(request):
 
     # === HISTORIQUE ===
     report_history = []
-    recent_transactions = Transaction.objects.filter(transaction_type='subscription', payment_status='paid').order_by('-created_at')[:5]
+    recent_transactions = Transaction.objects.filter(transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').order_by('-created_at')[:5]
     for i, t in enumerate(recent_transactions, 1):
         report_history.append({
             'id': i,
@@ -1417,7 +1417,7 @@ def generate_sales_report(request):
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=18, spaceAfter=30)
 
-    transactions = Transaction.objects.filter(transaction_type='subscription', payment_status='paid').order_by('-created_at')
+    transactions = Transaction.objects.filter(transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').order_by('-created_at')
     total = float(transactions.aggregate(t=Sum('price_paid'))['t'] or 0)
 
     story.append(Paragraph("RAPPORT VENTES - CORRIGE MOI", title_style))
@@ -1532,7 +1532,7 @@ def export_all_reports(request):
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=18, spaceAfter=30)
 
-    transactions = Transaction.objects.filter(transaction_type='subscription', payment_status='paid').order_by('-created_at')
+    transactions = Transaction.objects.filter(transaction_type__in=['subscription', 'upgrade', 'renewal'], payment_status='paid').order_by('-created_at')
     total = float(transactions.aggregate(t=Sum('price_paid'))['t'] or 0)
 
     story.append(Paragraph("RAPPORT VENTES - CORRIGE MOI", title_style))

@@ -221,6 +221,7 @@ class ProcessImageView(APIView):
             # SAUVEGARDE DANS L'HISTORIQUE (utilise extracted_text_final)
             CorrectionHistory.objects.create(
                 user=request.user,
+                image=image,
                 user_domain=domaine,
                 user_level=niveau,
                 user_exercise_type=type_exercice,
@@ -667,7 +668,9 @@ class HistoryView(APIView):
     PAGE_SIZE = 20
 
     def get(self, request):
-        corrections = CorrectionHistory.objects.filter(user=request.user)
+        # ImageCorrection est le modèle effectivement utilisé par l'endpoint
+        # /treatment/test/production-image/ (correct_and_upload) appelé par Flutter
+        corrections = ImageCorrection.objects.filter(user=request.user)
 
         # Applique la restriction history_days du pack actif
         subscription = (
@@ -685,19 +688,24 @@ class HistoryView(APIView):
 
         corrections = corrections.order_by('-created_at')
 
-        # Bug #8 — Pagination : 20 items/page
-        from django.core.paginator import Paginator
-        page_number = request.GET.get('page', 1)
-        paginator = Paginator(corrections, self.PAGE_SIZE)
-        page_obj = paginator.get_page(page_number)
+        history = []
+        for c in corrections:
+            history.append({
+                'id': c.id,
+                'domaine': c.domaine,
+                'niveau': c.niveau,
+                'type_exercice': c.type_exercice,
+                'attente': c.attente,
+                'infos': c.infos_complementaires,
+                'correction': c.correction_text,
+                'image_url': request.build_absolute_uri(c.image.url) if c.image else '',
+                'date': c.created_at.strftime('%d/%m/%Y %H:%M'),
+            })
 
-        serializer = CorrectionHistorySerializer(page_obj.object_list, many=True)
         return Response({
-            'count': paginator.count,
-            'num_pages': paginator.num_pages,
-            'current_page': page_obj.number,
-            'has_next': page_obj.has_next(),
-            'results': serializer.data,
+            'success': True,
+            'total': len(history),
+            'history': history,
         })
 
 # backend/views.py

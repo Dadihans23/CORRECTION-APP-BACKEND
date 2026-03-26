@@ -15,6 +15,7 @@ import uuid
 
 class CorrectionHistory(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='corrections')
+    image = models.ImageField(upload_to='corrections/%Y/%m/%d/', null=True, blank=True)
     user_domain = models.CharField(max_length=100, default='Mathématiques')
     user_level = models.CharField(max_length=100, default='Collège (6ᵉ – 3ᵉ)')
     user_exercise_type = models.CharField(max_length=100, default='Problème à résoudre')

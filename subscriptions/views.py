@@ -110,12 +110,35 @@ class SubscribeToPackView(generics.CreateAPIView):
         # Récupérer l'abonnement actif
         current_sub = Subscription.objects.filter(user=user, is_active=True).first()
 
-        # Bloquer uniquement si même pack ET non expiré
-        if current_sub and current_sub.pack.id == new_pack.id and not current_sub.is_expired():
-            return Response({
-                'success': False,
-                'message': 'Vous êtes déjà abonné à ce pack.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        if current_sub and not current_sub.is_expired():
+            # Bloquer si même pack
+            if current_sub.pack.id == new_pack.id:
+                return Response({
+                    'success': False,
+                    'message': 'Vous êtes déjà abonné à ce pack.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Bloquer le downgrade (0 = illimité = infini)
+            current_limit = current_sub.pack.image_corrections_limit
+            new_limit = new_pack.image_corrections_limit
+            is_downgrade = (
+                (current_limit == 0 and new_limit != 0) or
+                (current_limit != 0 and new_limit != 0 and new_limit < current_limit)
+            )
+            if is_downgrade:
+                expires_str = (
+                    current_sub.expires_at.strftime('%d/%m/%Y')
+                    if current_sub.expires_at
+                    else 'illimité'
+                )
+                return Response({
+                    'success': False,
+                    'message': (
+                        f'Impossible de souscrire à un pack inférieur. '
+                        f'Votre pack "{current_sub.pack.name}" est actif '
+                        f'jusqu\'au {expires_str}.'
+                    )
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # Déterminer le type de transaction
         previous_pack = None
