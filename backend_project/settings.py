@@ -20,20 +20,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 os.environ['DJANGO_SERVER_TIMEOUT'] = '60'
 
 # Clé API Gemini
-GEMINI_API_KEY = 'AIzaSyAGwk-SeWShXR9ukmZF1SjSubBg2QnnEGE'
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 # GeniusPay Payment API
 GENIUSPAY_BASE_URL       = 'https://pay.genius.ci/api/v1/merchant'
-GENIUSPAY_API_KEY        = 'pk_live_EG1HpgEvteWHyByF6BIBkTfBe0UjfuQs'
-GENIUSPAY_API_SECRET     = 'sk_live_3cce030d05800b1ee7e9629f603933f9f446617cc483915efd3263f0e468a206'
+GENIUSPAY_API_KEY        = os.getenv('GENIUSPAY_API_KEY', '')
+GENIUSPAY_API_SECRET     = os.getenv('GENIUSPAY_API_SECRET', '')
 GENIUSPAY_WEBHOOK_SECRET = os.getenv('GENIUSPAY_WEBHOOK_SECRET', '')
 
 # Mode mock : simule la page de paiement en local (mettre False en production)
 PAYMENT_MOCK_MODE = False
 
-SECRET_KEY = 'django-insecure-)*_3xsh-gg-kg@eca5y(tbiib&bd6qi3sux=s&58$^s-9!9bv_'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-only-key-change-in-production')
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # ✅ CORS : Autoriser origines spécifiques
 ALLOWED_HOSTS = [

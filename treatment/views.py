@@ -52,6 +52,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 genai.configure(api_key=settings.GEMINI_API_KEY)
+print(f"[GEMINI] Clé utilisée : {settings.GEMINI_API_KEY}")
 
 class ProcessImageView(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -476,6 +477,10 @@ JSON :
                 }
 
             content = response.text
+            print("=" * 60)
+            print("[GEMINI RESPONSE]")
+            print(content)
+            print("=" * 60)
             logger.info(f"Mode: {content_analysis.get('educational_mode', False)} | Réponse: {content[:150]}...")
 
             return self._parse_gemini_response(content, content_analysis['needs_latex'])
