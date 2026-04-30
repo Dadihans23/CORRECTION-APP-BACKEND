@@ -1642,6 +1642,23 @@ def admin_settings(request):
         if whatsapp and not whatsapp.startswith('+'):
             settings.support_whatsapp = '+225' + whatsapp
 
+        # Clés API (ne pas écraser si champ vide)
+        gemini_key = request.POST.get('gemini_api_key', '').strip()
+        if gemini_key:
+            settings.gemini_api_key = gemini_key
+
+        geniuspay_key = request.POST.get('geniuspay_api_key', '').strip()
+        if geniuspay_key:
+            settings.geniuspay_api_key = geniuspay_key
+
+        geniuspay_secret = request.POST.get('geniuspay_api_secret', '').strip()
+        if geniuspay_secret:
+            settings.geniuspay_api_secret = geniuspay_secret
+
+        geniuspay_webhook = request.POST.get('geniuspay_webhook_secret', '').strip()
+        if geniuspay_webhook:
+            settings.geniuspay_webhook_secret = geniuspay_webhook
+
         settings.save()
         messages.success(request, 'Paramètres sauvegardés avec succès !')
         return redirect('custom_admin:settings')

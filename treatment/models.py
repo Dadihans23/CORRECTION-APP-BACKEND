@@ -136,6 +136,12 @@ class SiteSettings(models.Model):
     # === API & SÉCURITÉ ===
     master_api_key = models.CharField(max_length=100, unique=True, default=uuid.uuid4)
 
+    # === CLÉS API EXTERNES ===
+    gemini_api_key = models.CharField(max_length=200, blank=True, default="", verbose_name="Clé API Gemini")
+    geniuspay_api_key = models.CharField(max_length=200, blank=True, default="", verbose_name="Clé API GeniusPay")
+    geniuspay_api_secret = models.CharField(max_length=200, blank=True, default="", verbose_name="Secret API GeniusPay")
+    geniuspay_webhook_secret = models.CharField(max_length=200, blank=True, default="", verbose_name="Secret Webhook GeniusPay")
+
     # === DATES ===
     updated_at = models.DateTimeField(auto_now=True)
 

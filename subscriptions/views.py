@@ -58,11 +58,20 @@ class PackListCreateView(generics.ListCreateAPIView):
         })
 
 
-def _geniuspay_headers():
-    """Retourne les headers d'authentification GeniusPay."""
+def _get_geniuspay_keys():
+    from treatment.models import SiteSettings
+    site = SiteSettings.get_instance()
     return {
-        'X-API-Key': settings.GENIUSPAY_API_KEY,
-        'X-API-Secret': settings.GENIUSPAY_API_SECRET,
+        'api_key': site.geniuspay_api_key or settings.GENIUSPAY_API_KEY,
+        'api_secret': site.geniuspay_api_secret or settings.GENIUSPAY_API_SECRET,
+        'webhook_secret': site.geniuspay_webhook_secret or settings.GENIUSPAY_WEBHOOK_SECRET,
+    }
+
+def _geniuspay_headers():
+    keys = _get_geniuspay_keys()
+    return {
+        'X-API-Key': keys['api_key'],
+        'X-API-Secret': keys['api_secret'],
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     }
@@ -316,9 +325,8 @@ def _verify_geniuspay_signature(timestamp: str, raw_body: bytes, signature: str)
     Vérifie la signature HMAC-SHA256 du webhook GeniusPay.
     Format GeniusPay : HMAC-SHA256(timestamp + "." + json_payload, webhook_secret)
     """
-    secret = settings.GENIUSPAY_WEBHOOK_SECRET
+    secret = _get_geniuspay_keys()['webhook_secret']
     if not secret:
-        # Secret absent = configuration incomplète → on rejette pour éviter les fausses activations
         logger.error("[GeniusPay] GENIUSPAY_WEBHOOK_SECRET non configuré — webhook rejeté.")
         return False
     data_to_sign = timestamp.encode() + b'.' + raw_body

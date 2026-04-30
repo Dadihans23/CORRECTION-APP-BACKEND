@@ -51,8 +51,11 @@ from django.conf import settings
 
 
 logger = logging.getLogger(__name__)
-genai.configure(api_key=settings.GEMINI_API_KEY)
-print(f"[GEMINI] Clé utilisée : {settings.GEMINI_API_KEY}")
+
+def _get_gemini_key():
+    from treatment.models import SiteSettings
+    site = SiteSettings.get_instance()
+    return site.gemini_api_key or settings.GEMINI_API_KEY
 
 class ProcessImageView(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -724,8 +727,6 @@ from .serializers import (
     ChatSessionListSerializer, ChatSessionDetailSerializer, ChatMessageSerializer
 )
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
-
 class ChatSessionListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ChatSessionListSerializer
@@ -957,7 +958,7 @@ def test_local_and_save(request):
         correction.image.save(new_filename, File(f), save=True)
 
     # === GEMINI VISION ===
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+    genai.configure(api_key=_get_gemini_key())
     model = genai.GenerativeModel('gemini-2.5-flash')
 
     with open(file_path, "rb") as img_file:
@@ -1045,7 +1046,7 @@ def correct_and_upload(request):
     )
 
     # === GEMINI VISION ===
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+    genai.configure(api_key=_get_gemini_key())
     model = genai.GenerativeModel('gemini-2.5-flash')
     
     image_file.seek(0)  # ← REWINDE LE FICHIER
