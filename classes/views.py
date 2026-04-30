@@ -24,7 +24,16 @@ from .serializers import (
     GradeSerializer,
 )
 
-genai.configure(api_key=django_settings.GEMINI_API_KEY)
+def _get_gemini_key():
+    from treatment.models import SiteSettings
+    site = SiteSettings.get_instance()
+    db_key = site.gemini_api_key
+    env_key = django_settings.GEMINI_API_KEY
+    if db_key:
+        print(f"[GEMINI/classes] Source: DB | Clé: {db_key[:8]}...{db_key[-4:]}")
+        return db_key
+    print(f"[GEMINI/classes] Source: .env | Clé: {env_key[:8] if env_key else 'VIDE'}")
+    return env_key
 
 _SCHOOL_YEAR_RE = re.compile(r'^\d{4}(-\d{4})?$')
 
@@ -122,6 +131,7 @@ Règles strictes :
     raw = None
     try:
         print(f"[OCR] ⚙️  Initialisation modèle Gemini...")
+        genai.configure(api_key=_get_gemini_key())
         model = genai.GenerativeModel('gemini-2.5-flash')
         image_part = {'mime_type': mime_type, 'data': image_bytes}
 

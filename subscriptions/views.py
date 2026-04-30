@@ -60,11 +60,22 @@ class PackListCreateView(generics.ListCreateAPIView):
 
 def _get_geniuspay_keys():
     from treatment.models import SiteSettings
+    import logging
+    log = logging.getLogger(__name__)
+
     site = SiteSettings.get_instance()
+
+    def _pick(db_val, env_val, label):
+        if db_val:
+            print(f"[GENIUSPAY] {label} — Source: DB | Clé: {db_val[:8]}...{db_val[-4:]}")
+            return db_val
+        print(f"[GENIUSPAY] {label} — Source: .env | Clé: {env_val[:8] if env_val else 'VIDE'}")
+        return env_val
+
     return {
-        'api_key': site.geniuspay_api_key or settings.GENIUSPAY_API_KEY,
-        'api_secret': site.geniuspay_api_secret or settings.GENIUSPAY_API_SECRET,
-        'webhook_secret': site.geniuspay_webhook_secret or settings.GENIUSPAY_WEBHOOK_SECRET,
+        'api_key':        _pick(site.geniuspay_api_key,        settings.GENIUSPAY_API_KEY,        'api_key'),
+        'api_secret':     _pick(site.geniuspay_api_secret,     settings.GENIUSPAY_API_SECRET,     'api_secret'),
+        'webhook_secret': _pick(site.geniuspay_webhook_secret, settings.GENIUSPAY_WEBHOOK_SECRET, 'webhook_secret'),
     }
 
 def _geniuspay_headers():
@@ -110,7 +121,8 @@ class SubscribeToPackView(generics.CreateAPIView):
                     'success': False,
                     'message': 'Numéro de téléphone invalide. Format attendu : +2250701234567'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            if not settings.GENIUSPAY_API_KEY or not settings.GENIUSPAY_API_SECRET:
+            gp_keys = _get_geniuspay_keys()
+            if not gp_keys['api_key'] or not gp_keys['api_secret']:
                 return Response({
                     'success': False,
                     'message': 'Service de paiement non configuré.'
