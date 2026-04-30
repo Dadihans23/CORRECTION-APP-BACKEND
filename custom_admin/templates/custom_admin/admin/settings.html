@@ -95,19 +95,19 @@
         <div class="p-5 space-y-4">
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1">Clé API Gemini</label>
-                <input type="password" name="gemini_api_key" placeholder="{% if settings.gemini_api_key %}*** clé enregistrée — laisser vide pour conserver{% else %}AIza...{% endif %}" class="dark-input block w-full rounded-lg text-sm px-3 py-2">
+                <input type="text" name="gemini_api_key" value="{{ settings.gemini_api_key }}" placeholder="AIza..." class="dark-input block w-full rounded-lg text-sm px-3 py-2 font-mono">
             </div>
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1">Clé API GeniusPay (pk_live_...)</label>
-                <input type="password" name="geniuspay_api_key" placeholder="{% if settings.geniuspay_api_key %}*** clé enregistrée — laisser vide pour conserver{% else %}pk_live_...{% endif %}" class="dark-input block w-full rounded-lg text-sm px-3 py-2">
+                <input type="text" name="geniuspay_api_key" value="{{ settings.geniuspay_api_key }}" placeholder="pk_live_..." class="dark-input block w-full rounded-lg text-sm px-3 py-2 font-mono">
             </div>
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1">Secret API GeniusPay (sk_live_...)</label>
-                <input type="password" name="geniuspay_api_secret" placeholder="{% if settings.geniuspay_api_secret %}*** clé enregistrée — laisser vide pour conserver{% else %}sk_live_...{% endif %}" class="dark-input block w-full rounded-lg text-sm px-3 py-2">
+                <input type="text" name="geniuspay_api_secret" value="{{ settings.geniuspay_api_secret }}" placeholder="sk_live_..." class="dark-input block w-full rounded-lg text-sm px-3 py-2 font-mono">
             </div>
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1">Secret Webhook GeniusPay</label>
-                <input type="password" name="geniuspay_webhook_secret" placeholder="{% if settings.geniuspay_webhook_secret %}*** clé enregistrée — laisser vide pour conserver{% else %}whsec_...{% endif %}" class="dark-input block w-full rounded-lg text-sm px-3 py-2">
+                <input type="text" name="geniuspay_webhook_secret" value="{{ settings.geniuspay_webhook_secret }}" placeholder="whsec_..." class="dark-input block w-full rounded-lg text-sm px-3 py-2 font-mono">
             </div>
         </div>
     </div>
