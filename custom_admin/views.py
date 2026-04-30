@@ -1656,6 +1656,31 @@ def admin_settings(request):
     return render(request, 'custom_admin/admin/settings.html', context)
 
 
+@staff_required
+def test_gemini_key(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+
+    import google.generativeai as genai
+    from treatment.models import SiteSettings
+    from django.conf import settings as django_settings
+
+    site = SiteSettings.get_instance()
+    api_key = site.gemini_api_key or django_settings.GEMINI_API_KEY
+
+    if not api_key:
+        return JsonResponse({'success': False, 'error': 'Aucune clé API Gemini configurée.'})
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content("Réponds uniquement par le mot: OK")
+        text = response.text.strip()
+        return JsonResponse({'success': True, 'message': f'Clé valide — Gemini répond : {text}'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
 
 
 

@@ -95,7 +95,13 @@
         <div class="p-5 space-y-4">
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1">Clé API Gemini</label>
-                <input type="text" name="gemini_api_key" value="{{ settings.gemini_api_key }}" placeholder="AIza..." class="dark-input block w-full rounded-lg text-sm px-3 py-2 font-mono">
+                <div class="flex gap-2 items-center">
+                    <input type="text" name="gemini_api_key" id="gemini_api_key" value="{{ settings.gemini_api_key }}" placeholder="AIza..." class="dark-input block w-full rounded-lg text-sm px-3 py-2 font-mono">
+                    <button type="button" onclick="testGeminiKey()" class="shrink-0 bg-white/10 hover:bg-white/20 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                        Tester
+                    </button>
+                </div>
+                <p id="gemini-test-result" class="mt-2 text-xs hidden"></p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1">Clé API GeniusPay (pk_live_...)</label>
@@ -119,4 +125,44 @@
         </button>
     </div>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function testGeminiKey() {
+    const btn = event.target;
+    const result = document.getElementById('gemini-test-result');
+
+    btn.disabled = true;
+    btn.textContent = 'Test en cours...';
+    result.className = 'mt-2 text-xs text-white/50';
+    result.textContent = 'Connexion à Gemini...';
+    result.classList.remove('hidden');
+
+    try {
+        const response = await fetch("{% url 'custom_admin:test_gemini' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            result.className = 'mt-2 text-xs text-green-400';
+            result.textContent = '✓ ' + data.message;
+        } else {
+            result.className = 'mt-2 text-xs text-red-400';
+            result.textContent = '✗ ' + data.error;
+        }
+    } catch (e) {
+        result.className = 'mt-2 text-xs text-red-400';
+        result.textContent = '✗ Erreur réseau : ' + e.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Tester';
+    }
+}
+</script>
 {% endblock %}

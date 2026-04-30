@@ -55,7 +55,13 @@ logger = logging.getLogger(__name__)
 def _get_gemini_key():
     from treatment.models import SiteSettings
     site = SiteSettings.get_instance()
-    return site.gemini_api_key or settings.GEMINI_API_KEY
+    db_key = site.gemini_api_key
+    env_key = settings.GEMINI_API_KEY
+    if db_key:
+        print(f"[GEMINI] Source: DB | Clé: {db_key[:8]}...{db_key[-4:]}")
+        return db_key
+    print(f"[GEMINI] Source: .env | Clé: {env_key[:8]}...{env_key[-4:] if env_key else 'VIDE'}")
+    return env_key
 
 class ProcessImageView(APIView):
     parser_classes = [MultiPartParser, FormParser]
