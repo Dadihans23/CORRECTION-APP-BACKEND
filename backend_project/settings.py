@@ -41,7 +41,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '10.245.228.225',
     '172.20.10.2',
-    '10.245.68.224' , 
+    '10.245.68.224' ,
     '10.245.8.223',
     '172.20.10.2',
     '10.245.8.222',
@@ -52,7 +52,10 @@ ALLOWED_HOSTS = [
     '10.244.164.222',
     '192.168.1.8',
     '192.168.1.19',
+    os.getenv('VPS_HOST', ''),       # IP ou domaine VPS depuis .env
+    os.getenv('VPS_DOMAIN', ''),     # Domaine si configuré
 ]
+ALLOWED_HOSTS = [h for h in ALLOWED_HOSTS if h]  # Supprimer les vides
 
 
 # ✅ Autoriser headers et méthodes
@@ -73,6 +76,14 @@ CORS_ALLOW_HEADERS = [
     "x-csrftoken",
     "x-requested-with",
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    origin for origin in [
+        os.getenv('CORS_ORIGIN_1', ''),
+        os.getenv('CORS_ORIGIN_2', ''),
+    ] if origin
+]
+CORS_ALLOW_ALL_ORIGINS = not CORS_ALLOWED_ORIGINS  # True seulement si aucune origine définie
 
 # ✅ Autoriser credentials (JWT tokens)
 CORS_ALLOW_CREDENTIALS = True
@@ -173,12 +184,13 @@ whatsapp='+2'
 
 WSGI_APPLICATION = 'backend_project.wsgi.application'
 
-# Database
+# Database — PostgreSQL en prod via DATABASE_URL, SQLite en dev
+import dj_database_url
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600,
+    )
 }
 
 # Password validation
